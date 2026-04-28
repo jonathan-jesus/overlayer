@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Overlayer.TestSupport.Assertions;
 
 namespace Overlayer.Api.Tests.Acceptance;
 
@@ -76,5 +77,24 @@ public class RequestUploadUrlsTests : IClassFixture<WebApplicationFactory<Progra
         var response = await _client.SendAsync(request);
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Get_UploadUrls_ReturnsContractCompliantResponse()
+    {
+        var jobId = Guid.NewGuid();
+        var request = new HttpRequestMessage(
+            HttpMethod.Get,
+            $"/api/jobs/{jobId}/upload-urls");
+
+        request.Headers.Add("X-Session-ID", Guid.NewGuid().ToString());
+
+        var response = await _client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        var json = await response.Content.ReadAsStringAsync();
+
+        json.ShouldMatchSchema("upload-urls.schema.json");
     }
 }

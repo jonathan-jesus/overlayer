@@ -1,0 +1,81 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "RequestUploadUrlsResponse",
+  "description": "Response shape for POST /api/jobs/{jobId}/upload-urls as defined in contract.md",
+  "type": "object",
+  "required": [
+    "jobId",
+    "videoUpload",
+    "overlayUpload"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "jobId": {
+      "type": "string"
+    },
+    "videoUpload": {
+      "$ref": "#/$defs/uploadData"
+    },
+    "overlayUpload": {
+      "$ref": "#/$defs/uploadData"
+    }
+  },
+  "$defs": {
+    "uploadData": {
+      "type": "object",
+      "required": [
+        "url",
+        "fields",
+        "maxFileSize"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "url": {
+          "type": "string"
+        },
+        "fields": {
+          "$ref": "#/$defs/presignedPostFields"
+        },
+        "maxFileSize": {
+          "type": "integer"
+        }
+      }
+    },
+    "presignedPostFields": {
+      "type": "object",
+      "required": [
+        "key",
+        "xAmzCredential",
+        "xAmzAlgorithm",
+        "xAmzDate",
+        "policy",
+        "xAmzSignature",
+        "contentType"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "key": {
+          "type": "string"
+        },
+        "xAmzCredential": {
+          "type": "string"
+        },
+        "xAmzAlgorithm": {
+          "type": "string"
+        },
+        "xAmzDate": {
+          "type": "string"
+        },
+        "policy": {
+          "type": "string"
+        },
+        "xAmzSignature": {
+          "type": "string"
+        },
+        "contentType": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

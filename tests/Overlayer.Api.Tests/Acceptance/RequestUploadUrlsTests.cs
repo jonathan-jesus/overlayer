@@ -62,4 +62,19 @@ public class RequestUploadUrlsTests : IClassFixture<WebApplicationFactory<Progra
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
+
+    [Fact]
+    public async Task Get_UploadUrls_WithInvalidJobId_Returns400()
+    {
+        var jobId = "invalid-guid";
+        var request = new HttpRequestMessage(
+            HttpMethod.Get,
+            $"/api/jobs/{jobId}/upload-urls");
+
+        request.Headers.Add("X-Session-ID", Guid.NewGuid().ToString());
+
+        var response = await _client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
 }

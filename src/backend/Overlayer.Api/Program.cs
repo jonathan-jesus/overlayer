@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Overlayer.Shared.Contracts;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -8,38 +9,38 @@ app.MapGet("/api/jobs/{jobId}/upload-urls", (string jobId, [FromHeader(Name = "X
 {
     if (!Guid.TryParse(jobId, out _)) return Results.BadRequest();
 
-    return Results.Ok(new
+    return Results.Ok(new RequestUploadUrlsResponse
     {
-        jobId,
-        videoUpload = new
+        JobId = jobId,
+        VideoUpload = new PresignedUpload
         {
-            url = "https://...",
-            fields = new
+            Url = "https://...",
+            Fields = new Fields
             {
-                key = "jobs/session-id/job-id/overlay.png",
-                xAmzCredential = "...",
-                xAmzAlgorithm = "...",
-                xAmzDate = "...",
-                policy = "...",
-                xAmzSignature = "...",
-                contentType = "video/"
+                Key = "jobs/session-id/job-id/overlay.png",
+                XAmzCredential = "...",
+                XAmzAlgorithm = "...",
+                XAmzDate = "...",
+                Policy = "...",
+                XAmzSignature = "...",
+                ContentType = "video/"
             },
-            maxFileSize = 10485760
+            MaxFileSize = 10485760
         },
-        overlayUpload = new
+        OverlayUpload = new PresignedUpload
         {
-            url = "https://...",
-            fields = new
+            Url = "https://...",
+            Fields = new Fields
             {
-                key = "jobs/session-id/job-id/overlay.png",
-                xAmzCredential = "...",
-                xAmzAlgorithm = "...",
-                xAmzDate = "...",
-                policy = "...",
-                xAmzSignature = "...",
-                contentType = "image/png"
+                Key = "jobs/session-id/job-id/overlay.png",
+                XAmzCredential = "...",
+                XAmzAlgorithm = "...",
+                XAmzDate = "...",
+                Policy = "...",
+                XAmzSignature = "...",
+                ContentType = "image/png"
             },
-            maxFileSize = 10485760
+            MaxFileSize = 4194304
         }
     });
 });

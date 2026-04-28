@@ -1,0 +1,13 @@
+<Solution>
+  <Folder Name="/src/" />
+  <Folder Name="/src/backend/">
+    <Project Path="src/backend/Overlayer.Api/Overlayer.Api.csproj" />
+    <Project Path="src/backend/Overlayer.Shared/Overlayer.Shared.csproj" />
+    <Project Path="src/backend/Overlayer.Worker/Overlayer.Worker.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Overlayer.Api.Tests/Overlayer.Api.Tests.csproj" />
+    <Project Path="tests/Overlayer.TestSupport/Overlayer.TestSupport.csproj" />
+    <Project Path="tests/Overlayer.Worker.Tests/Overlayer.Worker.Tests.csproj" />
+  </Folder>
+</Solution>

@@ -10,4 +10,9 @@
     <EmbeddedResource Include="Schemas\*.schema.json" />
   </ItemGroup>
 
+  <Target Name="GenerateSchemaClasses" BeforeTargets="BeforeBuild" Condition="!Exists('Contracts\RequestUploadUrlsResponse.cs')">
+    <!-- The 'Contracts' folder must be manually created before executing this for the first time. Quicktype will fail if the output directory does not exist. -->
+    <Exec Command="npx quicktype -s schema Schemas/upload-urls.schema.json -o Contracts/RequestUploadUrlsResponse.cs --namespace Overlayer.Shared.Contracts --framework SystemTextJson" />
+  </Target>
+
 </Project>

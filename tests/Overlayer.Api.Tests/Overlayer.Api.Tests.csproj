@@ -8,9 +8,12 @@
   </PropertyGroup>
 
   <ItemGroup>
+      <PackageReference Include="AWSSDK.S3" Version="4.0.21.2" />
     <PackageReference Include="coverlet.collector" Version="6.0.4" />
+    <PackageReference Include="JsonSchema.Net" Version="7.3.2" />
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.6" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageReference Include="Testcontainers.LocalStack" Version="4.11.0" />
     <PackageReference Include="xunit" Version="2.9.3" />
     <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" />
   </ItemGroup>
@@ -21,8 +24,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\backend\Overlayer.Api\Overlayer.Api.csproj" />
-    <ProjectReference Include="..\Overlayer.TestSupport\Overlayer.TestSupport.csproj" />
     <ProjectReference Include="..\..\src\backend\Overlayer.Shared\Overlayer.Shared.csproj" />
+    <ProjectReference Include="..\Overlayer.TestSupport\Overlayer.TestSupport.csproj" />
   </ItemGroup>
 
 </Project>

@@ -11,8 +11,36 @@ app.MapGet("/api/jobs/{jobId}/upload-urls", (string jobId, [FromHeader(Name = "X
     return Results.Ok(new
     {
         jobId,
-        videoUpload = new { },
-        overlayUpload = new { }
+        videoUpload = new
+        {
+            url = "https://...",
+            fields = new
+            {
+                key = "jobs/session-id/job-id/overlay.png",
+                xAmzCredential = "...",
+                xAmzAlgorithm = "...",
+                xAmzDate = "...",
+                policy = "...",
+                xAmzSignature = "...",
+                contentType = "video/"
+            },
+            maxFileSize = 10485760
+        },
+        overlayUpload = new
+        {
+            url = "https://...",
+            fields = new
+            {
+                key = "jobs/session-id/job-id/overlay.png",
+                xAmzCredential = "...",
+                xAmzAlgorithm = "...",
+                xAmzDate = "...",
+                policy = "...",
+                xAmzSignature = "...",
+                contentType = "image/png"
+            },
+            maxFileSize = 10485760
+        }
     });
 });
 

@@ -1,8 +1,10 @@
+using Microsoft.AspNetCore.Mvc;
+
 var builder = WebApplication.CreateBuilder(args);
 
 var app = builder.Build();
 
-app.MapGet("/api/jobs/{jobId}/upload-urls", (string jobId) =>
+app.MapGet("/api/jobs/{jobId}/upload-urls", (string jobId, [FromHeader(Name = "X-Session-ID")] Guid sessionId) =>
 {
     return Results.Ok(new
     {

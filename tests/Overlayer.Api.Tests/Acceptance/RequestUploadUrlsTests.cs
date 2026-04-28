@@ -34,4 +34,32 @@ public class RequestUploadUrlsTests : IClassFixture<WebApplicationFactory<Progra
         Assert.True(json.TryGetProperty("videoUpload", out _));
         Assert.True(json.TryGetProperty("overlayUpload", out _));
     }
+
+    [Fact]
+    public async Task Get_UploadUrls_WithoutSessionId_Returns400()
+    {
+        var jobId = Guid.NewGuid();
+        var request = new HttpRequestMessage(
+            HttpMethod.Get,
+            $"/api/jobs/{jobId}/upload-urls");
+
+        var response = await _client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Get_UploadUrls_WithInvalidSessionId_Returns400()
+    {
+        var jobId = Guid.NewGuid();
+        var request = new HttpRequestMessage(
+            HttpMethod.Get,
+            $"/api/jobs/{jobId}/upload-urls");
+
+        request.Headers.Add("X-Session-ID", "invalid-guid");
+
+        var response = await _client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
 }

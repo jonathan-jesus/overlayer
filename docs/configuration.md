@@ -1,4 +1,6 @@
-# API Configuration
+# Configuration
+
+## API Configuration
 
 The API requires an S3-compatible storage service for asset storage.
 
@@ -14,5 +16,21 @@ The API requires an S3-compatible storage service for asset storage.
 | `S3__ForcePathStyle`               | `S3.ForcePathStyle`               | LocalStack only                                                              |
 | `Uploads__VideoMaxFileSizeBytes`   | `Uploads.VideoMaxFileSizeBytes`   | Maximum allowed size for video uploads. Defaulst to `10485760` (10 MB)       |
 | `Uploads__OverlayMaxFileSizeBytes` | `Uploads.OverlayMaxFileSizeBytes` | Maximum allowed size for overlay image uploads. Defaults to `4194304` (4 MB) |
+
+---
+
+## Worker Configuration
+
+The Worker requires configuration for Amazon SQS and standard AWS SDK.
+
+### Environment Variables
+
+| Variable               | Maps to               | Notes                                                            |
+| ---------------------- | --------------------- | ---------------------------------------------------------------- |
+| `SQS__QueueUrl`        | `SQS.QueueUrl`        | Required. URL of the Amazon SQS queue polled for background jobs |
+| `SQS__WaitTimeSeconds` | `SQS.WaitTimeSeconds` | Optional. Long-polling wait time in seconds. Defaults to `20`    |
+| `AWS__Region`          | `AWS.Region`          | Optional. AWS region for the worker environment                  |
+| `AWS__Profile`         | `AWS.Profile`         | Local development only                                           |
+| `AWS__ServiceURL`      | `AWS.ServiceURL`      | LocalStack LocalStack only                                       |
 
 ---

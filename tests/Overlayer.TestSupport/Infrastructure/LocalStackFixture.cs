@@ -1,5 +1,7 @@
 using Amazon.S3;
 using Amazon.S3.Model;
+using Amazon.SQS;
+using Amazon.SQS.Model;
 using Testcontainers.LocalStack;
 
 namespace Overlayer.TestSupport.Infrastructure;
@@ -49,5 +51,33 @@ public class LocalStackFixture : IAsyncLifetime
         {
             // Bucket already exists, ignore
         }
+    }
+
+    public IAmazonSQS GetSqsClient()
+    {
+        var config = new AmazonSQSConfig
+        {
+            ServiceURL = ConnectionString,
+            AuthenticationRegion = "us-east-2"
+        };
+
+        return new AmazonSQSClient("test", "test", config);
+    }
+
+    public async Task<string> CreateQueueAsync(string name)
+    {
+        using var client = GetSqsClient();
+        var response = await client.CreateQueueAsync(new CreateQueueRequest { QueueName = name });
+        return response.QueueUrl;
+    }
+
+    public async Task SendMessageAsync(string queueUrl, string body)
+    {
+        using var client = GetSqsClient();
+        await client.SendMessageAsync(new SendMessageRequest
+        {
+            QueueUrl = queueUrl,
+            MessageBody = body
+        });
     }
 }

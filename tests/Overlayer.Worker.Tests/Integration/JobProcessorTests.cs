@@ -1,4 +1,3 @@
-using NSubstitute;
 using Overlayer.TestSupport.Infrastructure;
 using Overlayer.Worker.Configuration;
 using Overlayer.Worker.Ffmpeg;
@@ -32,7 +31,7 @@ public class JobProcessorTests
 
         var uploader = new S3OutputUploader(_fixture.GetS3Client(), s3Options);
 
-        var processor = new JobProcessor(_fixture.GetS3Client(), s3Options, Substitute.For<IProcessRunner>(), Substitute.For<IFfmpegCommandBuilder>(), uploader);
+        var processor = new JobProcessor(_fixture.GetS3Client(), s3Options, new FfmpegProcessRunner(), FfmpegCommandBuilder.WithDefaults(), uploader);
 
         await processor.HandleAsync(sessionId, jobId);
 

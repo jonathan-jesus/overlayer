@@ -21,7 +21,7 @@ The API requires an S3-compatible storage service for asset storage.
 
 ## Worker Configuration
 
-The Worker requires configuration for Amazon SQS, Amazon S3 and standard AWS SDK.
+The Worker requires configuration for Amazon SQS, Amazon S3, the FFmpeg processing properties and standard AWS SDK.
 
 ### Environment Variables
 
@@ -33,5 +33,7 @@ The Worker requires configuration for Amazon SQS, Amazon S3 and standard AWS SDK
 | `AWS__Region`          | `AWS.Region`          | Optional. AWS region for the worker environment                  |
 | `AWS__Profile`         | `AWS.Profile`         | Local development only                                           |
 | `AWS__ServiceURL`      | `AWS.ServiceURL`      | LocalStack LocalStack only                                       |
+| `Ffmpeg__MinBitrate`   | `Ffmpeg.MinBitrate`   | Optional. FFmpeg minimum video bitrate. Defaults to `3000`.      |
+| `Ffmpeg__MaxBitrate`   | `Ffmpeg.MaxBitrate`   | Optional. FFmpeg maximum video bitrate. Defaults to `6500`.      |
 
 ---

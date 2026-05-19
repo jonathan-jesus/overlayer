@@ -22,6 +22,10 @@ public static class HostBuilderExtensions
             builder.Configuration.GetSection(S3Options.SectionName));
         builder.Services.AddSingleton(sp => sp.GetRequiredService<IOptions<S3Options>>().Value);
 
+        builder.Services.Configure<FfmpegOptions>(
+            builder.Configuration.GetSection(FfmpegOptions.SectionName));
+        builder.Services.AddSingleton(sp => sp.GetRequiredService<IOptions<FfmpegOptions>>().Value);
+
         builder.Services.AddAWSService<IAmazonSQS>();
         builder.Services.AddAWSService<IAmazonS3>();
         builder.Services.AddSingleton<SqsPollingLoop>();

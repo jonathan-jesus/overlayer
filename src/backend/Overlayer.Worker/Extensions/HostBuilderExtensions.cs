@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using Overlayer.Worker.Configuration;
+using Overlayer.Worker.Ffmpeg;
 using Overlayer.Worker.Messaging;
 using Overlayer.Worker.Processing;
 
@@ -24,6 +25,9 @@ public static class HostBuilderExtensions
         builder.Services.AddAWSService<IAmazonSQS>();
         builder.Services.AddAWSService<IAmazonS3>();
         builder.Services.AddSingleton<SqsPollingLoop>();
+        builder.Services.AddSingleton<IProcessRunner, FfmpegProcessRunner>();
+        builder.Services.AddSingleton<IFfmpegCommandBuilder, FfmpegCommandBuilder>();
+        builder.Services.AddSingleton<IOutputUploader, S3OutputUploader>();
         builder.Services.AddSingleton<IJobProcessor, JobProcessor>();
         builder.Services.AddHostedService<SqsWorker>();
 

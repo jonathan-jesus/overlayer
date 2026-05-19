@@ -1,5 +1,7 @@
+using NSubstitute;
 using Overlayer.TestSupport.Infrastructure;
 using Overlayer.Worker.Configuration;
+using Overlayer.Worker.Ffmpeg;
 using Overlayer.Worker.Processing;
 
 namespace Overlayer.Worker.Tests.Integration;
@@ -28,7 +30,9 @@ public class JobProcessorTests
         await _fixture.UploadObjectAsync(BucketName, $"jobs/{sessionId}/{jobId}/video.mp4", FfmpegFixtures.VideoStream());
         await _fixture.UploadObjectAsync(BucketName, $"jobs/{sessionId}/{jobId}/overlay.png", FfmpegFixtures.OverlayStream());
 
-        var processor = new JobProcessor(_fixture.GetS3Client(), s3Options);
+        var uploader = new S3OutputUploader(_fixture.GetS3Client(), s3Options);
+
+        var processor = new JobProcessor(_fixture.GetS3Client(), s3Options, Substitute.For<IProcessRunner>(), Substitute.For<IFfmpegCommandBuilder>(), uploader);
 
         await processor.HandleAsync(sessionId, jobId);
 

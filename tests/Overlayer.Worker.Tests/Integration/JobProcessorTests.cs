@@ -1,3 +1,4 @@
+using NSubstitute;
 using Overlayer.TestSupport.Infrastructure;
 using Overlayer.Worker.Configuration;
 using Overlayer.Worker.Ffmpeg;
@@ -37,5 +38,27 @@ public class JobProcessorTests
 
         var exists = await _fixture.ObjectExistsAsync(BucketName, $"outputs/{sessionId}/{jobId}/output.mp4");
         Assert.True(exists);
+    }
+
+    [Fact]
+    [Trait("Category", "Integration")]
+    public async Task HandleAsync_WhenOutputExists_DoesNotProcessAgain()
+    {
+        var sessionId = Guid.NewGuid().ToString();
+        var jobId = Guid.NewGuid().ToString();
+
+        await _fixture.CreateBucketAsync(BucketName);
+
+        var outputKey = $"outputs/{sessionId}/{jobId}/output.mp4";
+        await _fixture.UploadObjectAsync(BucketName, outputKey, new MemoryStream("mock output"u8.ToArray()));
+
+        var processRunner = Substitute.For<IProcessRunner>();
+        var uploader = new S3OutputUploader(_fixture.GetS3Client(), s3Options);
+        var processor = new JobProcessor(_fixture.GetS3Client(), s3Options, processRunner, FfmpegCommandBuilder.WithDefaults(), uploader);
+
+        var exception = await Record.ExceptionAsync(() => processor.HandleAsync(sessionId, jobId));
+
+        Assert.Null(exception);
+        await processRunner.DidNotReceiveWithAnyArgs().RunAsync(default!, default!);
     }
 }

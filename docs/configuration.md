@@ -21,7 +21,7 @@ The API requires an S3-compatible storage service for asset storage.
 
 ## Worker Configuration
 
-The Worker requires configuration for Amazon SQS and standard AWS SDK.
+The Worker requires configuration for Amazon SQS, Amazon S3 and standard AWS SDK.
 
 ### Environment Variables
 
@@ -29,6 +29,7 @@ The Worker requires configuration for Amazon SQS and standard AWS SDK.
 | ---------------------- | --------------------- | ---------------------------------------------------------------- |
 | `SQS__QueueUrl`        | `SQS.QueueUrl`        | Required. URL of the Amazon SQS queue polled for background jobs |
 | `SQS__WaitTimeSeconds` | `SQS.WaitTimeSeconds` | Optional. Long-polling wait time in seconds. Defaults to `20`    |
+| `S3__BucketName`       | `S3.BucketName`       | Required. Name of the bucket for inputs/outputs/locks.           |
 | `AWS__Region`          | `AWS.Region`          | Optional. AWS region for the worker environment                  |
 | `AWS__Profile`         | `AWS.Profile`         | Local development only                                           |
 | `AWS__ServiceURL`      | `AWS.ServiceURL`      | LocalStack LocalStack only                                       |

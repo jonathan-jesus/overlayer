@@ -9,6 +9,11 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <EmbeddedResource Include="Fixtures\1s-16x16.mp4" />
+    <EmbeddedResource Include="Fixtures\16x16.png" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="AWSSDK.S3" Version="4.0.21.2" />
     <PackageReference Include="AWSSDK.SQS" Version="4.0.2.26" />
     <PackageReference Include="JsonSchema.Net" Version="7.3.2" />

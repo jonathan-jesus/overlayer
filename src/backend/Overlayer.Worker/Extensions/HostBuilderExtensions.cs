@@ -1,3 +1,4 @@
+using Amazon.S3;
 using Amazon.SQS;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -16,7 +17,12 @@ public static class HostBuilderExtensions
             builder.Configuration.GetSection(SqsOptions.SectionName));
         builder.Services.AddSingleton(sp => sp.GetRequiredService<IOptions<SqsOptions>>().Value);
 
+        builder.Services.Configure<S3Options>(
+            builder.Configuration.GetSection(S3Options.SectionName));
+        builder.Services.AddSingleton(sp => sp.GetRequiredService<IOptions<S3Options>>().Value);
+
         builder.Services.AddAWSService<IAmazonSQS>();
+        builder.Services.AddAWSService<IAmazonS3>();
         builder.Services.AddSingleton<SqsPollingLoop>();
         builder.Services.AddSingleton<IJobProcessor, JobProcessor>();
         builder.Services.AddHostedService<SqsWorker>();

@@ -80,4 +80,29 @@ public class LocalStackFixture : IAsyncLifetime
             MessageBody = body
         });
     }
+
+    public async Task UploadObjectAsync(string bucketName, string key, Stream content)
+    {
+        using var client = GetS3Client();
+        await client.PutObjectAsync(new PutObjectRequest
+        {
+            BucketName = bucketName,
+            Key = key,
+            InputStream = content
+        });
+    }
+
+    public async Task<bool> ObjectExistsAsync(string bucketName, string key)
+    {
+        using var client = GetS3Client();
+        try
+        {
+            await client.GetObjectMetadataAsync(bucketName, key);
+            return true;
+        }
+        catch (AmazonS3Exception ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+        {
+            return false;
+        }
+    }
 }

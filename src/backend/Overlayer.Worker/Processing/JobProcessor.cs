@@ -30,6 +30,9 @@ public class JobProcessor : IJobProcessor
         if (await OutputExistsAsync(outputKey))
             return;
 
+        if (!await BothInputsExistAsync(videoKey, overlayKey))
+            return;
+
         var tempDir = Path.Combine(Path.GetTempPath(), "overlayer", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(tempDir);
 
@@ -71,6 +74,28 @@ public class JobProcessor : IJobProcessor
             {
                 BucketName = _bucketName,
                 Key = key
+            });
+            return true;
+        }
+        catch (AmazonS3Exception ex) when (ex.StatusCode == HttpStatusCode.NotFound)
+        {
+            return false;
+        }
+    }
+
+    private async Task<bool> BothInputsExistAsync(string videoKey, string overlayKey)
+    {
+        try
+        {
+            await _s3.GetObjectMetadataAsync(new GetObjectMetadataRequest
+            {
+                BucketName = _bucketName,
+                Key = videoKey
+            });
+            await _s3.GetObjectMetadataAsync(new GetObjectMetadataRequest
+            {
+                BucketName = _bucketName,
+                Key = overlayKey
             });
             return true;
         }

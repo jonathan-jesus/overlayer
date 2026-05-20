@@ -1,4 +1,5 @@
 using System.Net;
+using System.Text.Json;
 using Amazon.S3;
 using Amazon.S3.Model;
 using Overlayer.Worker.Ffmpeg;
@@ -44,6 +45,7 @@ public class JobProcessor : IJobProcessor
         var videoPath = Path.Combine(tempDir, "video.mp4");
         var overlayPath = Path.Combine(tempDir, "overlay.png");
         var outputPath = Path.Combine(tempDir, "output.mp4");
+        var errorKey = $"outputs/{sessionId}/{jobId}/error.json";
 
         try
         {
@@ -59,7 +61,10 @@ public class JobProcessor : IJobProcessor
             var result = await _processRunner.RunAsync("ffmpeg", arguments);
 
             if (result.ExitCode != 0)
-                throw new InvalidOperationException($"FFmpeg exited with code {result.ExitCode}: {result.StandardError}");
+            {
+                await WriteTombstoneAsync(errorKey, result.StandardError);
+                return;
+            }
 
             await _uploader.UploadAsync(outputPath, sessionId, jobId);
         }
@@ -127,5 +132,23 @@ public class JobProcessor : IJobProcessor
         {
             return false;
         }
+    }
+
+    private async Task WriteTombstoneAsync(string errorKey, string reason)
+    {
+        var body = JsonSerializer.Serialize(new
+        {
+            reason = reason,
+            stage = "process",
+            timestamp = DateTimeOffset.UtcNow.ToString("o")
+        });
+
+        await _s3.PutObjectAsync(new PutObjectRequest
+        {
+            BucketName = _bucketName,
+            Key = errorKey,
+            ContentBody = body,
+            ContentType = "application/json"
+        });
     }
 }

@@ -85,4 +85,45 @@ public class JobProcessorTests
         var exists = await _fixture.ObjectExistsAsync(BucketName, $"outputs/{sessionId}/{jobId}/output.mp4");
         Assert.False(exists);
     }
+
+    [Fact]
+    [Trait("Category", "Integration")]
+    public async Task HandleAsync_WhenCalledConcurrently_OnlyProcessesOnce()
+    {
+        var sessionId = Guid.NewGuid().ToString();
+        var jobId = Guid.NewGuid().ToString();
+
+        await _fixture.CreateBucketAsync(BucketName);
+
+        await _fixture.UploadObjectAsync(BucketName, $"jobs/{sessionId}/{jobId}/video.mp4", FfmpegFixtures.VideoStream());
+        await _fixture.UploadObjectAsync(BucketName, $"jobs/{sessionId}/{jobId}/overlay.png", FfmpegFixtures.OverlayStream());
+
+        var processStartedTcs = new TaskCompletionSource();
+        var releaseProcessTcs = new TaskCompletionSource();
+
+        var processRunner = Substitute.For<IProcessRunner>();
+        processRunner.RunAsync(default!, default!).ReturnsForAnyArgs(async callInfo =>
+        {
+            processStartedTcs.TrySetResult(); // Signal that we've reached RunAsync
+            await releaseProcessTcs.Task;     // Wait until we are allowed to finish
+            return new ProcessResult(0, "");
+        });
+
+        var uploader = Substitute.For<IOutputUploader>();
+
+        var processor1 = new JobProcessor(_fixture.GetS3Client(), s3Options, processRunner, FfmpegCommandBuilder.WithDefaults(), uploader);
+        var processor2 = new JobProcessor(_fixture.GetS3Client(), s3Options, processRunner, FfmpegCommandBuilder.WithDefaults(), uploader);
+
+        var task1 = processor1.HandleAsync(sessionId, jobId);
+
+        await Task.WhenAny(processStartedTcs.Task, Task.Delay(TimeSpan.FromSeconds(10)));
+
+        var task2 = processor2.HandleAsync(sessionId, jobId);
+
+        releaseProcessTcs.TrySetResult();
+
+        await Task.WhenAll(task1, task2);
+
+        await processRunner.Received(1).RunAsync(Arg.Any<string>(), Arg.Any<string>());
+    }
 }

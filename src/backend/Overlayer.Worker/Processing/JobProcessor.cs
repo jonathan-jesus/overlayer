@@ -33,6 +33,11 @@ public class JobProcessor : IJobProcessor
         if (!await BothInputsExistAsync(videoKey, overlayKey))
             return;
 
+        var lockKey = $"locks/{sessionId}/{jobId}.lock";
+
+        if (!await AcquireLockAsync(lockKey))
+            return;
+
         var tempDir = Path.Combine(Path.GetTempPath(), "overlayer", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(tempDir);
 
@@ -100,6 +105,25 @@ public class JobProcessor : IJobProcessor
             return true;
         }
         catch (AmazonS3Exception ex) when (ex.StatusCode == HttpStatusCode.NotFound)
+        {
+            return false;
+        }
+    }
+
+    private async Task<bool> AcquireLockAsync(string lockKey)
+    {
+        try
+        {
+            await _s3.PutObjectAsync(new PutObjectRequest
+            {
+                BucketName = _bucketName,
+                Key = lockKey,
+                ContentBody = string.Empty,
+                Headers = { ["If-None-Match"] = "*" }
+            });
+            return true;
+        }
+        catch (AmazonS3Exception ex) when (ex.StatusCode == HttpStatusCode.PreconditionFailed)
         {
             return false;
         }

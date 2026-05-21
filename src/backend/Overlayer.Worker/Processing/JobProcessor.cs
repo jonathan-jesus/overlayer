@@ -14,7 +14,7 @@ public class JobProcessor : IJobProcessor
     private readonly IProcessRunner _processRunner;
     private readonly IFfmpegCommandBuilder _commandBuilder;
     private readonly IOutputUploader _uploader;
-    public JobProcessor(IAmazonS3 s3, S3Options options, IProcessRunner processRunner, IFfmpegCommandBuilder commandBuilder, IOutputUploader uploader)
+    public JobProcessor(IAmazonS3 s3, S3Options options, IProcessRunner processRunner, IFfmpegCommandBuilder commandBuilder, IOutputUploader uploader, IMediaValidator validator)
     {
         _uploader = uploader;
         _commandBuilder = commandBuilder;

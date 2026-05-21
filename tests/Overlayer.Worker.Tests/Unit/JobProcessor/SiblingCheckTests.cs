@@ -72,8 +72,9 @@ public class SiblingCheckTests
         var runner = Substitute.For<IProcessRunner>();
         var builder = Substitute.For<IFfmpegCommandBuilder>();
         var uploader = Substitute.For<IOutputUploader>();
+        var validator = Substitute.For<IMediaValidator>();
 
-        var processor = new Processing.JobProcessor(s3, s3Options, runner, builder, uploader);
+        var processor = new Processing.JobProcessor(s3, s3Options, runner, builder, uploader, validator);
 
         await processor.HandleAsync(SessionId, JobId);
 
@@ -94,7 +95,9 @@ public class SiblingCheckTests
         var runner = Substitute.For<IProcessRunner>();
         var builder = Substitute.For<IFfmpegCommandBuilder>();
         var uploader = Substitute.For<IOutputUploader>();
-        var processor = new Processing.JobProcessor(s3, s3Options, runner, builder, uploader);
+        var validator = Substitute.For<IMediaValidator>();
+
+        var processor = new Processing.JobProcessor(s3, s3Options, runner, builder, uploader, validator);
 
         await processor.HandleAsync(SessionId, JobId);
 

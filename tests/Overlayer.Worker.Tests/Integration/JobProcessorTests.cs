@@ -32,7 +32,10 @@ public class JobProcessorTests
 
         var uploader = new S3OutputUploader(_fixture.GetS3Client(), s3Options);
 
-        var processor = new JobProcessor(_fixture.GetS3Client(), s3Options, new FfmpegProcessRunner(), FfmpegCommandBuilder.WithDefaults(), uploader);
+        var validator = Substitute.For<IMediaValidator>();
+        validator.ValidateAsync(Arg.Any<string>()).Returns(MediaValidationResult.Valid());
+
+        var processor = new JobProcessor(_fixture.GetS3Client(), s3Options, new FfmpegProcessRunner(), FfmpegCommandBuilder.WithDefaults(), uploader, validator);
 
         await processor.HandleAsync(sessionId, jobId);
 
@@ -54,7 +57,10 @@ public class JobProcessorTests
 
         var processRunner = Substitute.For<IProcessRunner>();
         var uploader = new S3OutputUploader(_fixture.GetS3Client(), s3Options);
-        var processor = new JobProcessor(_fixture.GetS3Client(), s3Options, processRunner, FfmpegCommandBuilder.WithDefaults(), uploader);
+        var validator = Substitute.For<IMediaValidator>();
+        validator.ValidateAsync(Arg.Any<string>()).Returns(MediaValidationResult.Valid());
+
+        var processor = new JobProcessor(_fixture.GetS3Client(), s3Options, processRunner, FfmpegCommandBuilder.WithDefaults(), uploader, validator);
 
         var exception = await Record.ExceptionAsync(() => processor.HandleAsync(sessionId, jobId));
 
@@ -75,7 +81,9 @@ public class JobProcessorTests
 
         var processRunner = Substitute.For<IProcessRunner>();
         var uploader = new S3OutputUploader(_fixture.GetS3Client(), s3Options);
-        var processor = new JobProcessor(_fixture.GetS3Client(), s3Options, processRunner, FfmpegCommandBuilder.WithDefaults(), uploader);
+        var validator = Substitute.For<IMediaValidator>();
+        validator.ValidateAsync(Arg.Any<string>()).Returns(MediaValidationResult.Valid());
+        var processor = new JobProcessor(_fixture.GetS3Client(), s3Options, processRunner, FfmpegCommandBuilder.WithDefaults(), uploader, validator);
 
         var exception = await Record.ExceptionAsync(() => processor.HandleAsync(sessionId, jobId));
 
@@ -111,8 +119,11 @@ public class JobProcessorTests
 
         var uploader = Substitute.For<IOutputUploader>();
 
-        var processor1 = new JobProcessor(_fixture.GetS3Client(), s3Options, processRunner, FfmpegCommandBuilder.WithDefaults(), uploader);
-        var processor2 = new JobProcessor(_fixture.GetS3Client(), s3Options, processRunner, FfmpegCommandBuilder.WithDefaults(), uploader);
+        var validator = Substitute.For<IMediaValidator>();
+        validator.ValidateAsync(Arg.Any<string>()).Returns(MediaValidationResult.Valid());
+
+        var processor1 = new JobProcessor(_fixture.GetS3Client(), s3Options, processRunner, FfmpegCommandBuilder.WithDefaults(), uploader, validator);
+        var processor2 = new JobProcessor(_fixture.GetS3Client(), s3Options, processRunner, FfmpegCommandBuilder.WithDefaults(), uploader, validator);
 
         var task1 = processor1.HandleAsync(sessionId, jobId);
 
@@ -143,7 +154,10 @@ public class JobProcessorTests
         processRunner.RunAsync(default!, default!).ReturnsForAnyArgs(Task.FromResult(new ProcessResult(1, "ffmpeg failed")));
 
         var uploader = new S3OutputUploader(_fixture.GetS3Client(), s3Options);
-        var processor = new JobProcessor(_fixture.GetS3Client(), s3Options, processRunner, FfmpegCommandBuilder.WithDefaults(), uploader);
+        var validator = Substitute.For<IMediaValidator>();
+        validator.ValidateAsync(Arg.Any<string>()).Returns(MediaValidationResult.Valid());
+
+        var processor = new JobProcessor(_fixture.GetS3Client(), s3Options, processRunner, FfmpegCommandBuilder.WithDefaults(), uploader, validator);
 
         var exception = await Record.ExceptionAsync(() => processor.HandleAsync(sessionId, jobId));
 
@@ -160,6 +174,41 @@ public class JobProcessorTests
         Assert.Contains("\"reason\":", json);
         Assert.Contains("\"stage\":\"process\"", json.Replace(" ", ""));
         Assert.Contains("\"timestamp\":", json);
+
+        var outputExists = await _fixture.ObjectExistsAsync(BucketName, $"outputs/{sessionId}/{jobId}/output.mp4");
+        Assert.False(outputExists);
+    }
+
+    [Fact]
+    [Trait("Category", "Integration")]
+    public async Task HandleAsync_WhenVideoValidationFails_WritesValidationTombstone()
+    {
+        var sessionId = Guid.NewGuid().ToString();
+        var jobId = Guid.NewGuid().ToString();
+
+        await _fixture.CreateBucketAsync(BucketName);
+
+        await _fixture.UploadObjectAsync(BucketName, $"jobs/{sessionId}/{jobId}/video.mp4", FfmpegFixtures.EmptyVideoStream());
+        await _fixture.UploadObjectAsync(BucketName, $"jobs/{sessionId}/{jobId}/overlay.png", FfmpegFixtures.OverlayStream());
+
+        var uploader = new S3OutputUploader(_fixture.GetS3Client(), s3Options);
+
+        var processRunner = new FfmpegProcessRunner();
+        var processor = new JobProcessor(_fixture.GetS3Client(), s3Options, processRunner, FfmpegCommandBuilder.WithDefaults(), uploader, new FfprobeValidator(processRunner));
+
+        var exception = await Record.ExceptionAsync(() => processor.HandleAsync(sessionId, jobId));
+
+        Assert.Null(exception);
+
+        var errorKey = $"outputs/{sessionId}/{jobId}/error.json";
+        var exists = await _fixture.ObjectExistsAsync(BucketName, errorKey);
+        Assert.True(exists, "Expected error.json to be written due to validation failure.");
+
+        var getResponse = await _fixture.GetS3Client().GetObjectAsync(BucketName, errorKey);
+        using var reader = new StreamReader(getResponse.ResponseStream);
+        var json = await reader.ReadToEndAsync();
+
+        Assert.Contains("\"stage\":\"validation\"", json.Replace(" ", ""));
 
         var outputExists = await _fixture.ObjectExistsAsync(BucketName, $"outputs/{sessionId}/{jobId}/output.mp4");
         Assert.False(outputExists);

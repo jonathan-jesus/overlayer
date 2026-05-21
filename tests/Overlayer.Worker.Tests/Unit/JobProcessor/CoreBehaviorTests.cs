@@ -37,13 +37,16 @@ public class CoreBehaviorTests
         uploader.UploadAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>())
                 .Returns(Task.CompletedTask);
 
+        var validator = Substitute.For<IMediaValidator>();
+        validator.ValidateAsync(Arg.Any<string>()).Returns(MediaValidationResult.Valid());
+
         var runner = Substitute.For<IProcessRunner>();
         runner.RunAsync(Arg.Any<string>(), Arg.Any<string>()).Returns(new ProcessResult(0, ""));
 
         var builder = Substitute.For<IFfmpegCommandBuilder>();
         builder.Build(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>()).Returns("mock_ffmpeg_args");
 
-        var processor = new Processing.JobProcessor(s3, s3Options, runner, builder, uploader);
+        var processor = new Processing.JobProcessor(s3, s3Options, runner, builder, uploader, validator);
 
         await processor.HandleAsync(SessionId, JobId);
 

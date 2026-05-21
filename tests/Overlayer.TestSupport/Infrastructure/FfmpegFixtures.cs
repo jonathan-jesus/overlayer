@@ -23,4 +23,11 @@ public static class FfmpegFixtures
                 $"Embedded resource '{resourceName}' not found. " +
                 "Place a 16×16 PNG at tests/Overlayer.TestSupport/Fixtures/16x16.png");
     }
+
+    public static Stream EmptyVideoStream()
+    {
+        const string resourceName = "Overlayer.TestSupport.Fixtures.empty.mp4";
+        return Assembly.GetManifestResourceStream(resourceName)
+            ?? throw new InvalidOperationException($"Embedded resource '{resourceName}' not found.");
+    }
 }

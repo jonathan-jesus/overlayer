@@ -83,7 +83,10 @@ public class FailureHandlingTests
             .Build(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>())
             .Returns("mock_ffmpeg_args");
 
-        var processor = new Processing.JobProcessor(s3, s3Options, runner, builder, Substitute.For<IOutputUploader>());
+        var validator = Substitute.For<IMediaValidator>();
+        validator.ValidateAsync(Arg.Any<string>()).Returns(MediaValidationResult.Valid());
+
+        var processor = new Processing.JobProcessor(s3, s3Options, runner, builder, Substitute.For<IOutputUploader>(), validator);
 
         await processor.HandleAsync(SessionId, JobId);
 
@@ -140,7 +143,10 @@ public class FailureHandlingTests
             .Build(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>())
             .Returns("mock_ffmpeg_args");
 
-        var processor = new Processing.JobProcessor(s3, s3Options, runner, builder, Substitute.For<IOutputUploader>());
+        var validator = Substitute.For<IMediaValidator>();
+        validator.ValidateAsync(Arg.Any<string>()).Returns(MediaValidationResult.Valid());
+
+        var processor = new Processing.JobProcessor(s3, s3Options, runner, builder, Substitute.For<IOutputUploader>(), validator);
 
         await processor.HandleAsync(SessionId, JobId);
 

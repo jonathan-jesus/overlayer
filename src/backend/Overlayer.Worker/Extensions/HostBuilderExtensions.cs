@@ -32,6 +32,7 @@ public static class HostBuilderExtensions
         builder.Services.AddSingleton<IProcessRunner, FfmpegProcessRunner>();
         builder.Services.AddSingleton<IFfmpegCommandBuilder, FfmpegCommandBuilder>();
         builder.Services.AddSingleton<IOutputUploader, S3OutputUploader>();
+        builder.Services.AddSingleton<IMediaValidator, FfprobeValidator>();
         builder.Services.AddSingleton<IJobProcessor, JobProcessor>();
         builder.Services.AddHostedService<SqsWorker>();
 

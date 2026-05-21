@@ -11,6 +11,7 @@
   <ItemGroup>
     <EmbeddedResource Include="Fixtures\1s-16x16.mp4" />
     <EmbeddedResource Include="Fixtures\16x16.png" />
+    <EmbeddedResource Include="Fixtures\empty.mp4" />
   </ItemGroup>
 
   <ItemGroup>

@@ -56,8 +56,9 @@ public class IdempotencyTests
         var uploader = Substitute.For<IOutputUploader>();
         var runner = Substitute.For<IProcessRunner>();
         var builder = Substitute.For<IFfmpegCommandBuilder>();
+        var validator = Substitute.For<IMediaValidator>();
 
-        var processor = new Processing.JobProcessor(s3, s3Options, runner, builder, uploader);
+        var processor = new Processing.JobProcessor(s3, s3Options, runner, builder, uploader, validator);
 
         await processor.HandleAsync(SessionId, JobId);
 

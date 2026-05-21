@@ -14,8 +14,10 @@ public class JobProcessor : IJobProcessor
     private readonly IProcessRunner _processRunner;
     private readonly IFfmpegCommandBuilder _commandBuilder;
     private readonly IOutputUploader _uploader;
+    private readonly IMediaValidator _validator;
     public JobProcessor(IAmazonS3 s3, S3Options options, IProcessRunner processRunner, IFfmpegCommandBuilder commandBuilder, IOutputUploader uploader, IMediaValidator validator)
     {
+        _validator = validator;
         _uploader = uploader;
         _commandBuilder = commandBuilder;
         _processRunner = processRunner;
@@ -56,6 +58,13 @@ public class JobProcessor : IJobProcessor
             var overlayResponse = await _s3.GetObjectAsync(new GetObjectRequest { BucketName = _bucketName, Key = overlayKey });
             await using (var fs = File.Create(overlayPath))
                 await overlayResponse.ResponseStream.CopyToAsync(fs);
+
+            var validationResult = await _validator.ValidateAsync(videoPath);
+            if (!validationResult.IsValid)
+            {
+                await WriteTombstoneAsync(errorKey, validationResult.FailureReason!, "validation");
+                return;
+            }
 
             var arguments = _commandBuilder.Build(videoPath, overlayPath, outputPath);
             var result = await _processRunner.RunAsync("ffmpeg", arguments);
@@ -134,12 +143,12 @@ public class JobProcessor : IJobProcessor
         }
     }
 
-    private async Task WriteTombstoneAsync(string errorKey, string reason)
+    private async Task WriteTombstoneAsync(string errorKey, string reason, string stage = "process")
     {
         var body = JsonSerializer.Serialize(new
         {
             reason = reason,
-            stage = "process",
+            stage = stage,
             timestamp = DateTimeOffset.UtcNow.ToString("o")
         });
 

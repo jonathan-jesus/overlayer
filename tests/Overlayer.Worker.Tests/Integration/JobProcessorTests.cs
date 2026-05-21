@@ -193,6 +193,9 @@ public class JobProcessorTests
 
         var uploader = new S3OutputUploader(_fixture.GetS3Client(), s3Options);
 
+        var validator = Substitute.For<IMediaValidator>();
+        validator.ValidateAsync(Arg.Any<string>()).Returns(MediaValidationResult.Fail("validation failed"));
+
         var processRunner = new FfmpegProcessRunner();
         var processor = new JobProcessor(_fixture.GetS3Client(), s3Options, processRunner, FfmpegCommandBuilder.WithDefaults(), uploader, new FfprobeValidator(processRunner));
 

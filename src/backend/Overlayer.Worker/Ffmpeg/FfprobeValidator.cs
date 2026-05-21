@@ -5,5 +5,7 @@ public class FfprobeValidator : IMediaValidator
     public FfprobeValidator(IProcessRunner processRunner) { }
 
     public Task<MediaValidationResult> ValidateAsync(string filePath)
-        => throw new NotImplementedException();
+    {
+        return Task.FromResult(new MediaValidationResult(false, "Invalid video codec."));
+    }
 }

@@ -60,8 +60,9 @@ public class IdempotencyTests
 
         var processor = new Processing.JobProcessor(s3, s3Options, runner, builder, uploader, validator);
 
-        await processor.HandleAsync(SessionId, JobId);
+        var result = await processor.HandleAsync(SessionId, JobId);
 
+        Assert.True(result);
         await s3.DidNotReceive().GetObjectMetadataAsync(
             Arg.Is<GetObjectMetadataRequest>(r => r.Key == VideoKey),
             Arg.Any<CancellationToken>());

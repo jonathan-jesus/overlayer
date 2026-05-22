@@ -130,8 +130,9 @@ public class LockAcquisitionTests
 
         var processor = new Processing.JobProcessor(s3, s3Options, runner, builder, uploader, validator);
 
-        await processor.HandleAsync(SessionId, JobId);
+        var result = await processor.HandleAsync(SessionId, JobId);
 
+        Assert.False(result);
         await s3.DidNotReceive().GetObjectAsync(
             Arg.Any<GetObjectRequest>(),
             Arg.Any<CancellationToken>());

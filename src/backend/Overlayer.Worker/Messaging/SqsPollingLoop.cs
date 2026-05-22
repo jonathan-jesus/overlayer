@@ -30,11 +30,16 @@ public class SqsPollingLoop
         foreach (var message in response.Messages)
         {
             var jobInfo = SqsMessageParser.Parse(message.Body);
+            bool shouldDelete = true;
             if (jobInfo != null)
             {
-                await _processor.HandleAsync(jobInfo.Value.SessionId, jobInfo.Value.JobId);
+                shouldDelete = await _processor.HandleAsync(jobInfo.Value.SessionId, jobInfo.Value.JobId);
             }
-            await _sqs.DeleteMessageAsync(sqsOptions.QueueUrl, message.ReceiptHandle, ct);
+
+            if (shouldDelete)
+            {
+                await _sqs.DeleteMessageAsync(sqsOptions.QueueUrl, message.ReceiptHandle, ct);
+            }
         }
     }
 }

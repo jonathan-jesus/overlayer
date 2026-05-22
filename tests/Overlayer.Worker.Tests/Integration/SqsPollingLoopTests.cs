@@ -45,7 +45,7 @@ public class SqsPollingLoopTests(LocalStackFixture fixture)
         await fixture.SendMessageAsync(queueUrl, BuildS3EventJson(sessionId, jobId));
 
         var processor = Substitute.For<IJobProcessor>();
-        processor.HandleAsync(sessionId, jobId).Returns(Task.CompletedTask);
+        processor.HandleAsync(sessionId, jobId).Returns(true);
 
         using var sqs = fixture.GetSqsClient();
         var options = new SqsOptions
@@ -60,6 +60,36 @@ public class SqsPollingLoopTests(LocalStackFixture fixture)
 
         var success = await WaitUntilQueueMetricsAsync(sqs, queueUrl, 0, 0, TimeSpan.FromSeconds(5));
         Assert.True(success, "Message was not deleted from the queue");
+    }
+
+    [Fact]
+    [Trait("Category", "Integration")]
+    public async Task RunOnceAsync_WhenProcessorReturnsFalse_DoesNotDeleteMessage()
+    {
+        var sessionId = Guid.NewGuid().ToString();
+        var jobId = Guid.NewGuid().ToString();
+
+        var queueUrl = await fixture.CreateQueueAsync($"test-jobs-aborted-{Guid.NewGuid():N}");
+        await fixture.SendMessageAsync(queueUrl, BuildS3EventJson(sessionId, jobId));
+
+        var processor = Substitute.For<IJobProcessor>();
+        processor.HandleAsync(sessionId, jobId).Returns(false);
+
+        using var sqs = fixture.GetSqsClient();
+        var options = new SqsOptions
+        {
+            QueueUrl = queueUrl,
+            WaitTimeSeconds = 0
+        };
+        var loop = new SqsPollingLoop(sqs, options, processor);
+
+        await loop.RunOnceAsync();
+
+        var attributes = await sqs.GetQueueAttributesAsync(queueUrl, new List<string> { "ApproximateNumberOfMessages", "ApproximateNumberOfMessagesNotVisible" });
+        int visible = int.Parse(attributes.Attributes["ApproximateNumberOfMessages"]);
+        int notVisible = int.Parse(attributes.Attributes["ApproximateNumberOfMessagesNotVisible"]);
+
+        Assert.Equal(1, visible + notVisible);
     }
 
     private static string BuildS3EventJson(string sessionId, string jobId) => $$"""

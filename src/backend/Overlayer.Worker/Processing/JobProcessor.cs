@@ -24,22 +24,22 @@ public class JobProcessor : IJobProcessor
         _bucketName = options.BucketName;
         _s3 = s3;
     }
-    public async Task HandleAsync(string sessionId, string jobId)
+    public async Task<bool> HandleAsync(string sessionId, string jobId)
     {
         var videoKey = $"jobs/{sessionId}/{jobId}/video.mp4";
         var overlayKey = $"jobs/{sessionId}/{jobId}/overlay.png";
         var outputKey = $"outputs/{sessionId}/{jobId}/output.mp4";
 
         if (await OutputExistsAsync(outputKey))
-            return;
+            return true;
 
         if (!await BothInputsExistAsync(videoKey, overlayKey))
-            return;
+            return true;
 
         var lockKey = $"locks/{sessionId}/{jobId}.lock";
 
         if (!await AcquireLockAsync(lockKey))
-            return;
+            return true;
 
         var tempDir = Path.Combine(Path.GetTempPath(), "overlayer", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(tempDir);
@@ -63,7 +63,7 @@ public class JobProcessor : IJobProcessor
             if (!validationResult.IsValid)
             {
                 await WriteTombstoneAsync(errorKey, validationResult.FailureReason!, "validation");
-                return;
+                return true;
             }
 
             var arguments = _commandBuilder.Build(videoPath, overlayPath, outputPath);
@@ -72,7 +72,7 @@ public class JobProcessor : IJobProcessor
             if (result.ExitCode != 0)
             {
                 await WriteTombstoneAsync(errorKey, result.StandardError);
-                return;
+                return true;
             }
 
             await _uploader.UploadAsync(outputPath, sessionId, jobId);
@@ -83,6 +83,7 @@ public class JobProcessor : IJobProcessor
                 Directory.Delete(tempDir, recursive: true);
         }
 
+        return true;
     }
 
     private async Task<bool> OutputExistsAsync(string key)

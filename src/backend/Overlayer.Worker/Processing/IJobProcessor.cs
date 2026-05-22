@@ -2,5 +2,5 @@ namespace Overlayer.Worker.Processing;
 
 public interface IJobProcessor
 {
-    Task HandleAsync(string sessionId, string jobId);
+    Task<bool> HandleAsync(string sessionId, string jobId);
 }

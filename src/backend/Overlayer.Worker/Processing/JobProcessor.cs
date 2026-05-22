@@ -34,12 +34,12 @@ public class JobProcessor : IJobProcessor
             return true;
 
         if (!await BothInputsExistAsync(videoKey, overlayKey))
-            return true;
+            return false;
 
         var lockKey = $"locks/{sessionId}/{jobId}.lock";
 
         if (!await AcquireLockAsync(lockKey))
-            return true;
+            return false;
 
         var tempDir = Path.Combine(Path.GetTempPath(), "overlayer", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(tempDir);

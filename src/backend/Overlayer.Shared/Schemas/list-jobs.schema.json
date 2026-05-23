@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ListJobsResponse",
+  "description": "Response shape for GET /api/jobs as defined in contract.md",
+  "type": "object",
+  "required": ["jobs"],
+  "additionalProperties": false,
+  "properties": {
+    "jobs": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/job" }
+    }
+  },
+  "$defs": {
+    "job": {
+      "type": "object",
+      "required": ["jobId", "status", "createdAt", "downloadUrl"],
+      "additionalProperties": false,
+      "properties": {
+        "jobId":       { "type": "string" },
+        "status":      { "type": "string", "enum": ["PROCESSING", "COMPLETED", "FAILED", "MISSING_ASSETS"] },
+        "createdAt":   { "type": "string", "format": "date-time" },
+        "downloadUrl": { "type": ["string", "null"] },
+        "reason":      { "type": "string" }
+      }
+    }
+  }
+}

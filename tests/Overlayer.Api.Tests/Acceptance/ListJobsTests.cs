@@ -1,16 +1,42 @@
 using System.Net;
-using Microsoft.AspNetCore.Mvc.Testing;
+using Overlayer.Api.Tests.Infrastructure;
+using Overlayer.TestSupport.Assertions;
+using Overlayer.TestSupport.Infrastructure;
 
 namespace Overlayer.Api.Tests.Acceptance;
 
-public class ListJobsTests : IClassFixture<WebApplicationFactory<Program>>
+public class ListJobsTests : IClassFixture<LocalStackFixture>, IAsyncLifetime
 {
+    private const string BucketName = "overlayer-acceptance-test";
+
+    private readonly LocalStackFixture _localStack;
     private readonly HttpClient _client;
 
-    public ListJobsTests(WebApplicationFactory<Program> factory)
+    public string SessionId { get; } = Guid.NewGuid().ToString();
+    public string JobId { get; } = Guid.NewGuid().ToString();
+
+    private class TestFactory : BaseIntegrationApiFactory
     {
+        public TestFactory(string connectionString, string bucketName)
+            : base(connectionString, bucketName) { }
+    }
+    public ListJobsTests(LocalStackFixture localStack)
+    {
+        _localStack = localStack;
+        var factory = new TestFactory(_localStack.ConnectionString, BucketName);
         _client = factory.CreateClient();
     }
+
+    public async Task InitializeAsync()
+    {
+        await _localStack.CreateBucketAsync(BucketName);
+        await _localStack.UploadObjectAsync(
+            BucketName,
+            $"outputs/{SessionId}/{JobId}/output.mp4",
+            new MemoryStream("fake-output"u8.ToArray()));
+    }
+
+    public Task DisposeAsync() => Task.CompletedTask;
 
     [Fact]
     public async Task Get_Jobs_WithoutSessionId_Returns400()
@@ -31,5 +57,20 @@ public class ListJobsTests : IClassFixture<WebApplicationFactory<Program>>
         var response = await _client.SendAsync(request);
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Get_Jobs_ReturnsContractCompliantResponse()
+    {
+        var request = new HttpRequestMessage(HttpMethod.Get, "/api/jobs");
+        request.Headers.Add("X-Session-ID", SessionId);
+
+        var response = await _client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        var json = await response.Content.ReadAsStringAsync();
+
+        json.ShouldMatchSchema("list-jobs.schema.json");
     }
 }

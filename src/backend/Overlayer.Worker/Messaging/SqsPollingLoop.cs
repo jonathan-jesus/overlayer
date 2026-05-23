@@ -29,16 +29,24 @@ public class SqsPollingLoop
 
         foreach (var message in response.Messages)
         {
-            var jobInfo = SqsMessageParser.Parse(message.Body);
-            bool shouldDelete = true;
-            if (jobInfo != null)
+            try
             {
-                shouldDelete = await _processor.HandleAsync(jobInfo.Value.SessionId, jobInfo.Value.JobId);
-            }
+                var jobInfo = SqsMessageParser.Parse(message.Body);
 
-            if (shouldDelete)
+                bool shouldDelete = true;
+                if (jobInfo != null)
+                {
+                    shouldDelete = await _processor.HandleAsync(jobInfo.Value.SessionId, jobInfo.Value.JobId);
+                }
+
+                if (shouldDelete)
+                {
+                    await _sqs.DeleteMessageAsync(sqsOptions.QueueUrl, message.ReceiptHandle, ct);
+                }
+            }
+            catch
             {
-                await _sqs.DeleteMessageAsync(sqsOptions.QueueUrl, message.ReceiptHandle, ct);
+                // Do not delete message on failure, allow it to reappear after visibility timeout
             }
         }
     }

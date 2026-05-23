@@ -42,6 +42,9 @@ app.MapGet("/api/jobs/{jobId}/upload-urls", async (
     });
 });
 
+app.MapGet("/api/jobs", ([FromHeader(Name = "X-Session-ID")] Guid sessionId)
+    => Results.Ok());
+
 app.Run();
 
 public partial class Program { }

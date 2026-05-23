@@ -1,5 +1,6 @@
 using Amazon.SQS;
 using Amazon.SQS.Model;
+using Microsoft.Extensions.Logging.Abstractions;
 using NSubstitute;
 using NSubstitute.ExceptionExtensions;
 using Overlayer.Worker.Configuration;
@@ -29,7 +30,7 @@ public class SqsPollingLoopTests
         };
 
     private static SqsPollingLoop BuildLoop(IAmazonSQS sqs, IJobProcessor processor) =>
-        new(sqs, new SqsOptions { QueueUrl = QueueUrl, WaitTimeSeconds = 0 }, processor);
+        new(sqs, new SqsOptions { QueueUrl = QueueUrl, WaitTimeSeconds = 0 }, processor, NullLogger<SqsPollingLoop>.Instance);
 
     [Fact]
     [Trait("Category", "Unit")]

@@ -1,5 +1,6 @@
 using Amazon.SQS;
 using Amazon.SQS.Model;
+using Microsoft.Extensions.Logging;
 using Overlayer.Worker.Configuration;
 using Overlayer.Worker.Processing;
 
@@ -10,8 +11,10 @@ public class SqsPollingLoop
     private readonly IAmazonSQS _sqs;
     private readonly SqsOptions _options;
     private readonly IJobProcessor _processor;
-    public SqsPollingLoop(IAmazonSQS sqs, SqsOptions options, IJobProcessor processor)
+    private readonly ILogger<SqsPollingLoop> _logger;
+    public SqsPollingLoop(IAmazonSQS sqs, SqsOptions options, IJobProcessor processor, ILogger<SqsPollingLoop> logger)
     {
+        _logger = logger;
         _processor = processor;
         _options = options;
         _sqs = sqs;
@@ -44,9 +47,11 @@ public class SqsPollingLoop
                     await _sqs.DeleteMessageAsync(sqsOptions.QueueUrl, message.ReceiptHandle, ct);
                 }
             }
-            catch
+            catch (Exception ex)
             {
-                // Do not delete message on failure, allow it to reappear after visibility timeout
+                _logger.LogError(ex,
+                    "Failed to process message {MessageId}.",
+                    message.MessageId);
             }
         }
     }

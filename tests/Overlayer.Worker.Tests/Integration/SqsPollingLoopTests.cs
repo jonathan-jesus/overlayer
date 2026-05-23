@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging.Abstractions;
 using Amazon.SQS;
 using NSubstitute;
 using Overlayer.TestSupport.Infrastructure;
@@ -27,7 +28,7 @@ public class SqsPollingLoopTests(LocalStackFixture fixture)
             QueueUrl = queueUrl,
             WaitTimeSeconds = 0
         };
-        var loop = new SqsPollingLoop(sqs, options, processor);
+        var loop = new SqsPollingLoop(sqs, options, processor, NullLogger<SqsPollingLoop>.Instance);
 
         await loop.RunOnceAsync();
 
@@ -53,7 +54,7 @@ public class SqsPollingLoopTests(LocalStackFixture fixture)
             QueueUrl = queueUrl,
             WaitTimeSeconds = 0
         };
-        var loop = new SqsPollingLoop(sqs, options, processor);
+        var loop = new SqsPollingLoop(sqs, options, processor, NullLogger<SqsPollingLoop>.Instance);
 
 
         await loop.RunOnceAsync();
@@ -81,7 +82,7 @@ public class SqsPollingLoopTests(LocalStackFixture fixture)
             QueueUrl = queueUrl,
             WaitTimeSeconds = 0
         };
-        var loop = new SqsPollingLoop(sqs, options, processor);
+        var loop = new SqsPollingLoop(sqs, options, processor, NullLogger<SqsPollingLoop>.Instance);
 
         await loop.RunOnceAsync();
 

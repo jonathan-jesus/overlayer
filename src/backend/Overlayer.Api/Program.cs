@@ -9,7 +9,26 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.Configure<S3Options>(builder.Configuration.GetSection(S3Options.SectionName));
 builder.Services.Configure<UploadOptions>(builder.Configuration.GetSection(UploadOptions.SectionName));
-builder.Services.AddSingleton<IAmazonS3>(sp => new AmazonS3Client());
+builder.Services.AddSingleton<IAmazonS3>(sp =>
+{
+    var opts = sp.GetRequiredService<IOptions<S3Options>>().Value;
+
+    var config = new AmazonS3Config
+    {
+        ForcePathStyle = opts.ForcePathStyle,
+    };
+
+    if (!string.IsNullOrWhiteSpace(opts.ServiceUrl))
+    {
+        config.ServiceURL = opts.ServiceUrl;
+    }
+    else
+    {
+        config.RegionEndpoint = Amazon.RegionEndpoint.GetBySystemName(opts.Region);
+    }
+
+    return new AmazonS3Client(opts.AccessKey, opts.SecretKey, config);
+});
 builder.Services.AddSingleton<IStorageService, S3StorageService>();
 
 var app = builder.Build();
@@ -44,11 +63,36 @@ app.MapGet("/api/jobs/{jobId}/upload-urls", async (
     });
 });
 
-app.MapGet("/api/jobs", ([FromHeader(Name = "X-Session-ID")] Guid sessionId) =>
+app.MapGet("/api/jobs", async (
+    [FromHeader(Name = "X-Session-ID")] Guid sessionId,
+    [FromServices] IStorageService storageService) =>
 {
-    return Results.Ok(new { jobs = Array.Empty<object>() });
+    var jobs = await storageService.ListJobsAsync(sessionId.ToString());
+
+    return Results.Ok(new
+    {
+        jobs = jobs.Select(j => new JobResponseDto
+        {
+            jobId = j.JobId,
+            status = j.Status,
+            createdAt = j.CreatedAt.ToString("yyyy-MM-ddTHH:mm:ssZ"),
+            downloadUrl = j.DownloadUrl,
+            reason = j.Reason
+        }).ToArray()
+    });
 });
 
 app.Run();
 
 public partial class Program { }
+
+public class JobResponseDto
+{
+    public string jobId { get; set; } = "";
+    public string status { get; set; } = "";
+    public string createdAt { get; set; } = "";
+    public string? downloadUrl { get; set; }
+
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public string? reason { get; set; }
+}

@@ -1,8 +1,10 @@
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using Amazon.S3;
 using Microsoft.Extensions.Options;
 using Overlayer.Api.Configuration;
+using Overlayer.Api.Models;
 using Overlayer.Shared.Contracts;
 
 namespace Overlayer.Api.Services;
@@ -11,7 +13,7 @@ public class S3StorageService : IStorageService
 {
     private readonly S3Options _options;
 
-    public S3StorageService(IOptions<S3Options> options)
+    public S3StorageService(IOptions<S3Options> options, IAmazonS3 s3Client)
     {
         _options = options.Value;
     }
@@ -83,4 +85,7 @@ public class S3StorageService : IStorageService
         using var hmac = new HMACSHA256(key);
         return hmac.ComputeHash(Encoding.UTF8.GetBytes(data));
     }
+
+    public Task<IReadOnlyList<JobEntry>> ListJobsAsync(string sessionId)
+        => throw new NotImplementedException();
 }

@@ -1,3 +1,4 @@
+using Amazon.S3;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Overlayer.Api.Configuration;
@@ -8,6 +9,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.Configure<S3Options>(builder.Configuration.GetSection(S3Options.SectionName));
 builder.Services.Configure<UploadOptions>(builder.Configuration.GetSection(UploadOptions.SectionName));
+builder.Services.AddSingleton<IAmazonS3>(sp => new AmazonS3Client());
 builder.Services.AddSingleton<IStorageService, S3StorageService>();
 
 var app = builder.Build();

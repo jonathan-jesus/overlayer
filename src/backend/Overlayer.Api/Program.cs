@@ -27,9 +27,13 @@ builder.Services.AddSingleton<IAmazonS3>(sp =>
         config.RegionEndpoint = Amazon.RegionEndpoint.GetBySystemName(opts.Region);
     }
 
-    return new AmazonS3Client(opts.AccessKey, opts.SecretKey, config);
+    return string.IsNullOrWhiteSpace(opts.AccessKey) || string.IsNullOrWhiteSpace(opts.SecretKey)
+        ? new AmazonS3Client(config)
+        : new AmazonS3Client(opts.AccessKey, opts.SecretKey, config);
 });
 builder.Services.AddSingleton<IStorageService, S3StorageService>();
+
+builder.Services.AddAWSLambdaHosting(LambdaEventSource.HttpApi);
 
 var app = builder.Build();
 

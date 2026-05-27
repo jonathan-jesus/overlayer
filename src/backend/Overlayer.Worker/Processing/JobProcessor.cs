@@ -1,3 +1,4 @@
+using System.Net;
 using Amazon.S3;
 using Amazon.S3.Model;
 using Overlayer.Worker.Ffmpeg;
@@ -25,6 +26,9 @@ public class JobProcessor : IJobProcessor
         var videoKey = $"jobs/{sessionId}/{jobId}/video.mp4";
         var overlayKey = $"jobs/{sessionId}/{jobId}/overlay.png";
         var outputKey = $"outputs/{sessionId}/{jobId}/output.mp4";
+
+        if (await OutputExistsAsync(outputKey))
+            return;
 
         var tempDir = Path.Combine(Path.GetTempPath(), "overlayer", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(tempDir);
@@ -55,6 +59,24 @@ public class JobProcessor : IJobProcessor
         {
             if (Directory.Exists(tempDir))
                 Directory.Delete(tempDir, recursive: true);
+        }
+
+    }
+
+    private async Task<bool> OutputExistsAsync(string key)
+    {
+        try
+        {
+            await _s3.GetObjectMetadataAsync(new GetObjectMetadataRequest
+            {
+                BucketName = _bucketName,
+                Key = key
+            });
+            return true;
+        }
+        catch (AmazonS3Exception ex) when (ex.StatusCode == HttpStatusCode.NotFound)
+        {
+            return false;
         }
     }
 }

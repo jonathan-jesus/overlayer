@@ -2,6 +2,7 @@ using System.Text;
 using System.Text.Json;
 using Amazon.S3;
 using Amazon.S3.Model;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using NSubstitute;
 using Overlayer.Api.Configuration;
@@ -28,7 +29,7 @@ public class S3StorageServiceTests
             ForcePathStyle = true,
             ServiceUrl = "http://localhost:4566"
         });
-        _sut = new S3StorageService(options, _s3);
+        _sut = new S3StorageService(options, _s3, NullLogger<S3StorageService>.Instance);
     }
 
     [Fact]
@@ -230,7 +231,7 @@ public class S3StorageServiceTests
             SecretKey = "test",
             ForcePathStyle = false
         });
-        var sut = new S3StorageService(options, _s3);
+        var sut = new S3StorageService(options, _s3, NullLogger<S3StorageService>.Instance);
 
         var result = await sut.GeneratePresignedPostAsync("some/key", "video/mp4", 1024);
 

@@ -14,9 +14,11 @@ public class S3StorageService : IStorageService
 {
     private readonly S3Options _options;
     private readonly IAmazonS3 _s3Client;
+    private readonly ILogger<S3StorageService> _logger;
 
-    public S3StorageService(IOptions<S3Options> options, IAmazonS3 s3Client)
+    public S3StorageService(IOptions<S3Options> options, IAmazonS3 s3Client, ILogger<S3StorageService> logger)
     {
+        _logger = logger;
         _options = options.Value;
         _s3Client = s3Client;
     }
@@ -199,9 +201,10 @@ public class S3StorageService : IStorageService
             if (doc.RootElement.TryGetProperty("reason", out var reasonEl))
                 return reasonEl.GetString();
         }
-        catch
+        catch (Exception ex)
         {
             // Tombstone unreadable
+            _logger.LogError(ex, "Could not read failure reason from tombstone {Key}", key);
         }
         return null;
     }

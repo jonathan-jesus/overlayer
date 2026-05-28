@@ -77,7 +77,7 @@ app.MapGet("/api/jobs", async (
             status = j.Status,
             createdAt = j.CreatedAt.ToString("yyyy-MM-ddTHH:mm:ssZ"),
             downloadUrl = j.DownloadUrl,
-            reason = j.Reason
+            reason = j.Status == "FAILED" ? (j.Reason ?? "An unexpected error occurred.") : null
         }).ToArray()
     });
 });

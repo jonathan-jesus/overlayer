@@ -174,4 +174,44 @@ public class ListJobsTests : IClassFixture<LocalStackFixture>
             "downloadUrl must be null for a FAILED job");
         body.ShouldMatchSchema("list-jobs.schema.json");
     }
+
+    [Fact]
+    public async Task Get_Jobs_WithMalformedTombstoneInS3_ReturnsFailedStatusWithUnexpectedErrorReason()
+    {
+        var sessionId = Guid.NewGuid().ToString();
+        var jobId = Guid.NewGuid().ToString();
+
+        var malformedTombstone = "this is not valid json {{{";
+
+        await _localStack.CreateBucketAsync(BucketName);
+        await _localStack.UploadObjectAsync(
+            BucketName,
+            $"outputs/{sessionId}/{jobId}/error.json",
+            new MemoryStream(Encoding.UTF8.GetBytes(malformedTombstone)));
+
+        using var factory = CreateFactory();
+        using var client = factory.CreateClient();
+
+        var request = new HttpRequestMessage(HttpMethod.Get, "/api/jobs");
+        request.Headers.Add("X-Session-ID", sessionId);
+
+        var response = await client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        var body = await response.Content.ReadAsStringAsync();
+        var json = JsonDocument.Parse(body).RootElement;
+
+        var jobs = json.GetProperty("jobs");
+        Assert.Equal(JsonValueKind.Array, jobs.ValueKind);
+
+        var job = Assert.Single(jobs.EnumerateArray());
+        Assert.Equal(jobId, job.GetProperty("jobId").GetString());
+        Assert.Equal("FAILED", job.GetProperty("status").GetString());
+        Assert.Equal("An unexpected error occurred.", job.GetProperty("reason").GetString());
+        Assert.True(
+            job.GetProperty("downloadUrl").ValueKind == JsonValueKind.Null,
+            "downloadUrl must be null for a FAILED job");
+        body.ShouldMatchSchema("list-jobs.schema.json");
+    }
 }

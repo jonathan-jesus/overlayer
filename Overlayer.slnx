@@ -1,4 +1,7 @@
 <Solution>
+  <Folder Name="/infra/">
+    <Project Path="infra/Overlayer.Infra.csproj" />
+  </Folder>
   <Folder Name="/src/" />
   <Folder Name="/src/backend/">
     <Project Path="src/backend/Overlayer.Api/Overlayer.Api.csproj" />

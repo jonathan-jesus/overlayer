@@ -7,6 +7,9 @@
 [Ll]ocal/
 *.lscache
 
+# Pulumi local state lock files
+.pulumi/
+
 # dotenv files
 *.env
 appsettings.Development.json

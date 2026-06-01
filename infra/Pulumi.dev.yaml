@@ -1,0 +1,5 @@
+config:
+  aws:region: us-east-2
+  overlayer:sqsVisibilityTimeoutSeconds: "300"
+  overlayer:dlqMessageRetentionSeconds: "1209600"
+encryptionsalt: v1:xF4DzkwcJu4=:v1:X+Ae5O+HydhxHIgi:h6NIFuY7PgAnxHwKRHHhXnpxEWhLLQ==

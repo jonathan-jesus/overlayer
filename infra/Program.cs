@@ -1,4 +1,4 @@
 using Overlayer.Infra.Stacks;
 using Pulumi;
 
-return await Deployment.RunAsync<FoundationalResources>();
+return await Deployment.RunAsync<ComputeStack>();

@@ -10,23 +10,15 @@ namespace Overlayer.Infra.Stacks;
 /// Creates the foundational data-plane infrastructure for Overlayer:
 /// S3 bucket, SQS with DLQ, S3-to-SQS notifications.
 /// </summary>
-public sealed class FoundationalResources : Stack
+public sealed class FoundationalResources
 {
-    [Output]
     public Output<string> BucketName { get; }
-    [Output]
     public Output<string> QueueUrl { get; }
-    public FoundationalResources()
+    internal Output<string> BucketArn { get; }
+    internal Output<string> QueueArn { get; }
+    internal Output<string> QueueName { get; }
+    public FoundationalResources(string stackName, Config config, InputMap<string> commonTags)
     {
-        var stackName = Deployment.Instance.StackName;
-        var config = new Config("overlayer");
-        var commonTags = new InputMap<string>
-        {
-            ["Project"] = "overlayer",
-            ["Environment"] = stackName,
-            ["ManagedBy"] = "pulumi",
-        };
-
         var visibilityTimeout = config.GetInt32("sqsVisibilityTimeoutSeconds") ?? 300;
         var dlqRetentionSeconds = config.GetInt32("dlqMessageRetentionSeconds") ?? 1_209_600;
 
@@ -153,5 +145,8 @@ public sealed class FoundationalResources : Stack
 
         BucketName = bucket.Id;
         QueueUrl = queue.Url;
+        BucketArn = bucket.Arn;
+        QueueArn = queue.Arn;
+        QueueName = queue.Name;
     }
 }

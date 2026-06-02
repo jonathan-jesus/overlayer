@@ -4,4 +4,5 @@ config:
   overlayer:dlqMessageRetentionSeconds: "1209600"
   overlayer:ffmpegMinBitrate: "3000"
   overlayer:ffmpegMaxBitrate: "6500"
+  overlayer:alertEmail: sousjonathan@gmail.com
 encryptionsalt: v1:qgORON0cGPQ=:v1:7eKWFYAs7k0m1cpL:phd7xEVdiDb+Qm6oM+B1XQ6kZ3cPYw==

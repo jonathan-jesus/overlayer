@@ -17,6 +17,7 @@ public sealed class FoundationalResources
     internal Output<string> BucketArn { get; }
     internal Output<string> QueueArn { get; }
     internal Output<string> QueueName { get; }
+    internal Output<string> DlqName { get; }
     public FoundationalResources(string stackName, Config config, InputMap<string> commonTags)
     {
         var visibilityTimeout = config.GetInt32("sqsVisibilityTimeoutSeconds") ?? 300;
@@ -148,5 +149,6 @@ public sealed class FoundationalResources
         BucketArn = bucket.Arn;
         QueueArn = queue.Arn;
         QueueName = queue.Name;
+        DlqName = dlq.Name;
     }
 }

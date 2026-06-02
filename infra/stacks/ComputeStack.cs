@@ -493,5 +493,14 @@ public sealed class ComputeStack : Stack
             }),
         });
         #endregion
+
+        _ = new ObservabilityResources(
+            stackName, config, commonTags,
+            dlqName: foundational.DlqName,
+            mainQueueName: foundational.QueueName,
+            lambdaName: lambda.Name,
+            ecsStopRuleName: ecsStopRule.Name,
+            ecsStopRuleArn: ecsStopRule.Arn);
+
     }
 }

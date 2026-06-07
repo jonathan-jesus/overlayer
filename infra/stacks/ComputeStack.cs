@@ -26,6 +26,7 @@ public sealed class ComputeStack : Stack
     [Output] public Output<string> BucketName { get; private set; }
     [Output] public Output<string> QueueUrl { get; private set; }
     [Output] public Output<string> FunctionUrl { get; private set; }
+    [Output] public Output<string>? DeployRoleArn { get; private set; }
     public ComputeStack()
     {
         var stackName = Deployment.Instance.StackName;
@@ -501,6 +502,26 @@ public sealed class ComputeStack : Stack
             lambdaName: lambda.Name,
             ecsStopRuleName: ecsStopRule.Name,
             ecsStopRuleArn: ecsStopRule.Arn);
+
+        // CI/CD trust infrastructure. Service ARNs are composed here from Output<string> values to avoid string-splitting.
+        var workerServiceArn = Output.Tuple(cluster.Arn, cluster.Name, workerService.Name)
+            .Apply(t =>
+            {
+                var (clusterArnVal, clusterNameVal, serviceNameVal) = t;
+                var prefix = string.Join(":", clusterArnVal.Split(':')[..5]);
+                return $"{prefix}:service/{clusterNameVal}/{serviceNameVal}";
+            });
+
+        var ciCd = new CiCdStack(
+            stackName,
+            commonTags,
+            ecrRepoArn: ecrRepo.Arn,
+            workerTaskRoleArn: workerTaskRole.Arn,
+            lambdaArn: lambda.Arn,
+            devServiceArn: workerServiceArn,
+            prodServiceArn: workerServiceArn);
+
+        DeployRoleArn = ciCd.DeployRoleArn;
 
     }
 }

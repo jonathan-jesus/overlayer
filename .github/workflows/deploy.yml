@@ -1,0 +1,190 @@
+name: Deploy
+
+on:
+  push:
+    branches:
+      - dev
+      - main
+
+jobs:
+  deploy-dev:
+    if: github.ref == 'refs/heads/dev'
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write   # required for OIDC token request
+      contents: read
+    env:
+      STACK: dev
+      AWS_REGION: us-east-2
+      FUNCTION_NAME: overlayer-dev-api
+      ECR_REPO: overlayer-worker-dev
+      CLUSTER: overlayer-dev
+      SERVICE: overlayer-worker-dev
+      ARTIFACT_BUCKET: overlayer-lambda-artifacts-dev
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN_DEV }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.x'
+
+      # ── Lambda: publish, zip, upload, update ──────────────────────────────
+      - name: Publish Lambda API
+        run: |
+          dotnet publish src/backend/Overlayer.Api \
+            -c Release \
+            --runtime linux-x64 \
+            --self-contained \
+            -o /tmp/lambda-publish
+
+      - name: Zip Lambda artifact
+        run: |
+          cd /tmp/lambda-publish
+          zip -r /tmp/overlayer-api-${{ github.sha }}.zip .
+
+      - name: Upload Lambda zip to S3
+        run: |
+          aws s3 cp /tmp/overlayer-api-${{ github.sha }}.zip \
+            s3://${{ env.ARTIFACT_BUCKET }}/overlayer-api-${{ github.sha }}.zip
+
+      - name: Update Lambda function code
+        run: |
+          aws lambda update-function-code \
+            --function-name ${{ env.FUNCTION_NAME }} \
+            --s3-bucket ${{ env.ARTIFACT_BUCKET }} \
+            --s3-key overlayer-api-${{ github.sha }}.zip
+
+      # ── Worker: build image, push to ECR, update ECS service ─────────────
+      - name: Log in to Amazon ECR
+        run: |
+          aws ecr get-login-password --region ${{ env.AWS_REGION }} | \
+            docker login --username AWS \
+              --password-stdin \
+              $(aws sts get-caller-identity --query Account --output text).dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com
+
+      - name: Build Worker Docker image
+        run: |
+          ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+          ECR_URI=${ACCOUNT_ID}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPO }}
+          docker build \
+            -f src/backend/Overlayer.Worker/Dockerfile \
+            -t ${ECR_URI}:${{ github.sha }} \
+            -t ${ECR_URI}:latest \
+            .
+
+      - name: Push Worker image to ECR
+        run: |
+          ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+          ECR_URI=${ACCOUNT_ID}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPO }}
+          docker push ${ECR_URI}:${{ github.sha }}
+          docker push ${ECR_URI}:latest
+
+      - name: Force new ECS deployment
+        run: |
+          aws ecs update-service \
+            --cluster ${{ env.CLUSTER }} \
+            --service ${{ env.SERVICE }} \
+            --force-new-deployment
+
+      - name: Wait for ECS service stability
+        run: |
+          aws ecs wait services-stable \
+            --cluster ${{ env.CLUSTER }} \
+            --services ${{ env.SERVICE }}
+
+  deploy-prod:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write   # required for OIDC token request
+      contents: read
+    env:
+      STACK: prod
+      AWS_REGION: us-east-2
+      FUNCTION_NAME: overlayer-prod-api
+      ECR_REPO: overlayer-worker-prod
+      CLUSTER: overlayer-prod
+      SERVICE: overlayer-worker-prod
+      ARTIFACT_BUCKET: overlayer-lambda-artifacts-prod
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN_PROD }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.x'
+
+      # ── Lambda: publish, zip, upload, update ──────────────────────────────
+      - name: Publish Lambda API
+        run: |
+          dotnet publish src/backend/Overlayer.Api \
+            -c Release \
+            --runtime linux-x64 \
+            --self-contained \
+            -o /tmp/lambda-publish
+
+      - name: Zip Lambda artifact
+        run: |
+          cd /tmp/lambda-publish
+          zip -r /tmp/overlayer-api-${{ github.sha }}.zip .
+
+      - name: Upload Lambda zip to S3
+        run: |
+          aws s3 cp /tmp/overlayer-api-${{ github.sha }}.zip \
+            s3://${{ env.ARTIFACT_BUCKET }}/overlayer-api-${{ github.sha }}.zip
+
+      - name: Update Lambda function code
+        run: |
+          aws lambda update-function-code \
+            --function-name ${{ env.FUNCTION_NAME }} \
+            --s3-bucket ${{ env.ARTIFACT_BUCKET }} \
+            --s3-key overlayer-api-${{ github.sha }}.zip
+
+      # ── Worker: build image, push to ECR, update ECS service ─────────────
+      - name: Log in to Amazon ECR
+        run: |
+          aws ecr get-login-password --region ${{ env.AWS_REGION }} | \
+            docker login --username AWS \
+              --password-stdin \
+              $(aws sts get-caller-identity --query Account --output text).dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com
+
+      - name: Build Worker Docker image
+        run: |
+          ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+          ECR_URI=${ACCOUNT_ID}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPO }}
+          docker build \
+            -f src/backend/Overlayer.Worker/Dockerfile \
+            -t ${ECR_URI}:${{ github.sha }} \
+            -t ${ECR_URI}:latest \
+            .
+
+      - name: Push Worker image to ECR
+        run: |
+          ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+          ECR_URI=${ACCOUNT_ID}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPO }}
+          docker push ${ECR_URI}:${{ github.sha }}
+          docker push ${ECR_URI}:latest
+
+      - name: Force new ECS deployment
+        run: |
+          aws ecs update-service \
+            --cluster ${{ env.CLUSTER }} \
+            --service ${{ env.SERVICE }} \
+            --force-new-deployment
+
+      - name: Wait for ECS service stability
+        run: |
+          aws ecs wait services-stable \
+            --cluster ${{ env.CLUSTER }} \
+            --services ${{ env.SERVICE }}

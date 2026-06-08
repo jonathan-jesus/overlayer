@@ -99,18 +99,21 @@ public class MessageConsumptionTests
     [Trait("Category", "Acceptance")]
     public void BuildHost_WithRealServices_ShouldResolveDependencyGraph()
     {
-        var envs = new Dictionary<string, string?>
-    {
-        { "SQS__QueueUrl", "http://localhost:4566/000000000000/test-queue" },
-        { "S3__BucketName", "test-bucket" },
-        { "S3__ServiceUrl", "http://localhost:4566" }
-    };
+        var args = new[]
+        {
+            "--SQS:QueueUrl=http://localhost:4566/000000000000/test-queue",
+            "--S3:BucketName=test-bucket",
+            "--S3:ServiceUrl=http://localhost:4566"
+        };
 
-        var configuration = new ConfigurationBuilder()
-            .AddInMemoryCollection(envs)
-            .Build();
-
-        var host = Program.BuildHost([]);
+        var host = Program.BuildHost(args, services =>
+        {
+            services.AddDefaultAWSOptions(new Amazon.Extensions.NETCore.Setup.AWSOptions
+            {
+                Credentials = new Amazon.Runtime.BasicAWSCredentials("test", "test"),
+                Region = Amazon.RegionEndpoint.USEast2
+            });
+        });
 
         var exception = Record.Exception(() =>
         {

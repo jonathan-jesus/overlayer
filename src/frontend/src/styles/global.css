@@ -1,0 +1,157 @@
+:root {
+  /* Color Palette */
+  --color-bg-base:        hsl(230, 20%, 7%);
+  --color-bg-surface:     hsl(230, 18%, 11%);
+  --color-bg-elevated:    hsl(230, 16%, 16%);
+  --color-bg-overlay:     hsl(230, 14%, 22%);
+
+  --color-brand-primary:  hsl(262, 83%, 68%);
+  --color-brand-accent:   hsl(190, 90%, 58%);
+  --color-brand-glow:     hsl(262, 83%, 68%, 0.25);
+
+  --color-text-primary:   hsl(230, 20%, 95%);
+  --color-text-secondary: hsl(230, 12%, 65%);
+  --color-text-muted:     hsl(230, 10%, 45%);
+
+  --color-border:         hsl(230, 14%, 22%);
+  --color-border-subtle:  hsl(230, 12%, 18%);
+
+  --color-success:        hsl(145, 60%, 50%);
+  --color-warning:        hsl(40, 90%, 58%);
+  --color-error:          hsl(350, 80%, 60%);
+
+  /* Typography */
+  --font-sans:   'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono:   'JetBrains Mono', 'Fira Code', monospace;
+
+  --text-xs:     0.75rem;
+  --text-sm:     0.875rem;
+  --text-base:   1rem;
+  --text-lg:     1.125rem;
+  --text-xl:     1.25rem;
+  --text-2xl:    1.5rem;
+  --text-3xl:    1.875rem;
+  --text-4xl:    2.25rem;
+  --text-5xl:    3rem;
+
+  --font-regular:   400;
+  --font-medium:    500;
+  --font-semibold:  600;
+  --font-bold:      700;
+
+  --leading-tight:  1.25;
+  --leading-normal: 1.5;
+  --leading-relaxed: 1.75;
+
+  /* Spacing */
+  --space-1:  0.25rem;
+  --space-2:  0.5rem;
+  --space-3:  0.75rem;
+  --space-4:  1rem;
+  --space-5:  1.25rem;
+  --space-6:  1.5rem;
+  --space-8:  2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+  --space-20: 5rem;
+  --space-24: 6rem;
+
+  /* Borders */
+  --radius-sm:   0.25rem;
+  --radius-md:   0.5rem;
+  --radius-lg:   0.75rem;
+  --radius-xl:   1rem;
+  --radius-2xl:  1.5rem;
+  --radius-full: 9999px;
+
+  /* Shadows */
+  --shadow-sm:   0 1px 3px hsl(0 0% 0% / 0.3);
+  --shadow-md:   0 4px 16px hsl(0 0% 0% / 0.4);
+  --shadow-lg:   0 8px 32px hsl(0 0% 0% / 0.5);
+  --shadow-glow: 0 0 32px var(--color-brand-glow);
+
+  /* Transitions */
+  --transition-fast:   150ms ease;
+  --transition-base:   250ms ease;
+  --transition-slow:   400ms ease;
+
+  /* Layout */
+  --max-width-content: 1200px;
+  --max-width-narrow:  720px;
+}
+
+/* Reset & Base */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px;
+  -webkit-text-size-adjust: 100%;
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  font-weight: var(--font-regular);
+  line-height: var(--leading-normal);
+  color: var(--color-text-primary);
+  background-color: var(--color-bg-base);
+  min-height: 100dvh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+img, video, svg {
+  display: block;
+  max-width: 100%;
+}
+
+a {
+  color: var(--color-brand-primary);
+  text-decoration: none;
+  transition: color var(--transition-fast);
+}
+
+a:hover {
+  color: var(--color-brand-accent);
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+  background: none;
+}
+
+/* Glassmorphism Utility */
+.glass {
+  background: hsl(230 18% 11% / 0.7);
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  border: 1px solid hsl(230 20% 95% / 0.06);
+  border-radius: var(--radius-xl);
+}
+
+/* Gradient Utilities */
+.gradient-brand {
+  background: linear-gradient(135deg, var(--color-brand-primary), var(--color-brand-accent));
+}
+
+.gradient-text {
+  background: linear-gradient(135deg, var(--color-brand-primary), var(--color-brand-accent));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Focus Styles */
+:focus-visible {
+  outline: 2px solid var(--color-brand-primary);
+  outline-offset: 3px;
+  border-radius: var(--radius-sm);
+}

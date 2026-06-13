@@ -44,7 +44,8 @@ public sealed class ComputeStack : Stack
         };
 
         #region Foundational data-plane resources
-        var foundational = new FoundationalResources(stackName, config, commonTags);
+        var corsAllowedOrigin = config.Require("corsAllowedOrigin");
+        var foundational = new FoundationalResources(stackName, config, commonTags, corsAllowedOrigin);
 
         BucketName = foundational.BucketName;
         QueueUrl = foundational.QueueUrl;

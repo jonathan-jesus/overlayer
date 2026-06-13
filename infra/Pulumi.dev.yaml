@@ -5,4 +5,5 @@ config:
   overlayer:ffmpegMinBitrate: "3000"
   overlayer:ffmpegMaxBitrate: "6500"
   overlayer:alertEmail: sousjonathan@gmail.com
+  overlayer:corsAllowedOrigin: "http://localhost:*"
 encryptionsalt: v1:xF4DzkwcJu4=:v1:X+Ae5O+HydhxHIgi:h6NIFuY7PgAnxHwKRHHhXnpxEWhLLQ==

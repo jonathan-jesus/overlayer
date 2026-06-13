@@ -18,7 +18,7 @@ public sealed class FoundationalResources
     internal Output<string> QueueArn { get; }
     internal Output<string> QueueName { get; }
     internal Output<string> DlqName { get; }
-    public FoundationalResources(string stackName, Config config, InputMap<string> commonTags)
+    public FoundationalResources(string stackName, Config config, InputMap<string> commonTags, string corsAllowedOrigin)
     {
         var visibilityTimeout = config.GetInt32("sqsVisibilityTimeoutSeconds") ?? 300;
         var dlqRetentionSeconds = config.GetInt32("dlqMessageRetentionSeconds") ?? 1_209_600;
@@ -37,6 +37,22 @@ public sealed class FoundationalResources
             BlockPublicPolicy = true,
             IgnorePublicAcls = true,
             RestrictPublicBuckets = true,
+        });
+
+        _ = new BucketCorsConfiguration($"overlayer-{stackName}-cors", new BucketCorsConfigurationArgs
+        {
+            Bucket = bucket.Id,
+            CorsRules =
+            [
+                new BucketCorsConfigurationCorsRuleArgs
+                {
+                    AllowedOrigins = [corsAllowedOrigin],
+                    AllowedMethods = ["POST"],
+                    AllowedHeaders = ["*"],
+                    ExposeHeaders  = [],
+                    MaxAgeSeconds  = 3000,
+                },
+            ],
         });
 
         _ = new BucketLifecycleConfiguration($"overlayer-{stackName}-lifecycle", new BucketLifecycleConfigurationArgs

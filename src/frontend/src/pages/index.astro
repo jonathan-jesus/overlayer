@@ -1,9 +1,8 @@
 ---
 import Layout from '../layouts/Layout.astro';
+import AppIsland from '../components/AppIsland/AppIsland';
 ---
 
 <Layout title="Home">
-  <main>
-    <h1 class="gradient-text">Overlayer</h1>
-  </main>
+  <AppIsland client:load />
 </Layout>

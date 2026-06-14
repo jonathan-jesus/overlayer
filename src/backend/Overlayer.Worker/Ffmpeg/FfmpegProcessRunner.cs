@@ -13,6 +13,7 @@ public class FfmpegProcessRunner : IProcessRunner
                 FileName = fileName,
                 Arguments = arguments,
                 RedirectStandardError = true,
+                RedirectStandardOutput = true,
                 UseShellExecute = false,
                 CreateNoWindow = true
             }
@@ -20,11 +21,14 @@ public class FfmpegProcessRunner : IProcessRunner
 
         process.Start();
 
-        // Read stderr concurrently. FFmpeg writes heavily to stderr and will deadlock if the buffer fills
+        // Read stdout and stderr concurrently to prevent deadlocks
+        var stdoutTask = process.StandardOutput.ReadToEndAsync();
         var stderrTask = process.StandardError.ReadToEndAsync();
         await process.WaitForExitAsync();
+        
+        var stdout = await stdoutTask;
         var stderr = await stderrTask;
 
-        return new ProcessResult(process.ExitCode, stderr);
+        return new ProcessResult(process.ExitCode, stderr, stdout);
     }
 }

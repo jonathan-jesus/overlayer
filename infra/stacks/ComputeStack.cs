@@ -356,7 +356,7 @@ public sealed class ComputeStack : Stack
                 Threshold = 1,
                 ComparisonOperator = "LessThanThreshold",
                 AlarmDescription = $"[overlayer/{stackName}] SQS queue empty. Scale worker in",
-                OkActions = new InputList<string> { scalingPolicy.Arn },
+                AlarmActions = new InputList<string> { scalingPolicy.Arn },
                 TreatMissingData = "notBreaching",
             });
         #endregion

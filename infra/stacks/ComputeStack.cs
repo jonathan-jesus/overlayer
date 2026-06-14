@@ -96,6 +96,20 @@ public sealed class ComputeStack : Stack
                     {
                         new
                         {
+                            Sid      = "S3List",
+                            Effect   = "Allow",
+                            Action   = new[] { "s3:ListBucket" },
+                            Resource = bucketArn,
+                            Condition = new Dictionary<string, object>
+                            {
+                                ["StringLike"] = new Dictionary<string, object>
+                                {
+                                    ["s3:prefix"] = new[] { "jobs/*", "outputs/*", "locks/*" },
+                                },
+                            },
+                        },
+                        new
+                        {
                             Sid      = "S3ReadJob",
                             Effect   = "Allow",
                             Action   = new[] { "s3:HeadObject", "s3:GetObject" },
@@ -411,7 +425,7 @@ public sealed class ComputeStack : Stack
                         {
                             Sid      = "S3Head",
                             Effect   = "Allow",
-                            Action   = new[] { "s3:HeadObject" },
+                            Action   = new[] { "s3:HeadObject", "s3:GetObject" },
                             Resource = new[] { $"{bucketArn}/jobs/*", $"{bucketArn}/outputs/*" },
                         },
                         new

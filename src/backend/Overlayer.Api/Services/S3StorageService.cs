@@ -25,34 +25,41 @@ public class S3StorageService : IStorageService
         _credentialProvider = credentialProvider;
     }
 
-    public Task<PresignedUpload> GeneratePresignedPostAsync(string key, string contentType, long maxFileSize)
+    public async Task<PresignedUpload> GeneratePresignedPostAsync(string key, string contentType, long maxFileSize)
     {
+        var credentials = await _credentialProvider.GetCredentialsAsync();
+
         var region = _options.Region;
         var dateStr = DateTime.UtcNow.ToString("yyyyMMddTHHmmssZ");
         var shortDate = DateTime.UtcNow.ToString("yyyyMMdd");
 
-        var credential = $"{_options.AccessKey}/{shortDate}/{region}/s3/aws4_request";
+        var credential = $"{credentials.AccessKey}/{shortDate}/{region}/s3/aws4_request";
         var algorithm = "AWS4-HMAC-SHA256";
+
+        var conditions = new List<object>
+        {
+            new { bucket = _options.BucketName },
+            new { key = key },
+            new[] { "eq", "$Content-Type", contentType },
+            new object[] { "content-length-range", 0, maxFileSize },
+            new Dictionary<string, string> { { "x-amz-credential", credential } },
+            new Dictionary<string, string> { { "x-amz-algorithm", algorithm } },
+            new Dictionary<string, string> { { "x-amz-date", dateStr } }
+        };
+
+        if (!string.IsNullOrWhiteSpace(credentials.SessionToken))
+            conditions.Add(new Dictionary<string, string> { { "x-amz-security-token", credentials.SessionToken } });
 
         var policyDoc = new
         {
             expiration = DateTime.UtcNow.AddHours(1).ToString("yyyy-MM-ddTHH:mm:ss.fffZ"),
-            conditions = new object[]
-            {
-                new { bucket = _options.BucketName },
-                new { key = key },
-                new[] { "eq", "$Content-Type", contentType },
-                new object[] { "content-length-range", 0, maxFileSize },
-                new Dictionary<string, string> { { "x-amz-credential", credential } },
-                new Dictionary<string, string> { { "x-amz-algorithm", algorithm } },
-                new Dictionary<string, string> { { "x-amz-date", dateStr } }
-            }
+            conditions = conditions
         };
 
         var policyJson = JsonSerializer.Serialize(policyDoc);
         var policyBase64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(policyJson));
 
-        var signingKey = GetSignatureKey(_options.SecretKey, shortDate, region, "s3");
+        var signingKey = GetSignatureKey(credentials.SecretKey, shortDate, region, "s3");
         using var hmac = new HMACSHA256(signingKey);
         var signatureBytes = hmac.ComputeHash(Encoding.UTF8.GetBytes(policyBase64));
         var signature = BitConverter.ToString(signatureBytes).Replace("-", "").ToLower();
@@ -61,7 +68,7 @@ public class S3StorageService : IStorageService
             ? $"{_options.ServiceUrl}/{_options.BucketName}"
             : $"https://{_options.BucketName}.s3.{region}.amazonaws.com";
 
-        return Task.FromResult(new PresignedUpload
+        return new PresignedUpload
         {
             Url = baseUrl,
             MaxFileSize = maxFileSize,
@@ -73,9 +80,10 @@ public class S3StorageService : IStorageService
                 XAmzDate = dateStr,
                 Policy = policyBase64,
                 XAmzSignature = signature,
-                ContentType = contentType
+                ContentType = contentType,
+                XAmzSecurityToken = credentials.SessionToken
             }
-        });
+        };
     }
 
     public async Task<IReadOnlyList<JobEntry>> ListJobsAsync(string sessionId)

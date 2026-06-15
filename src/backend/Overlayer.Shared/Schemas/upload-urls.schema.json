@@ -74,6 +74,9 @@
         },
         "contentType": {
           "type": "string"
+        },
+        "xAmzSecurityToken": {
+          "type": "string"
         }
       }
     }

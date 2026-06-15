@@ -39,6 +39,9 @@ public partial class Fields
     public required string XAmzDate { get; set; }
     [JsonPropertyName("xAmzSignature")]
     public required string XAmzSignature { get; set; }
+    [JsonPropertyName("xAmzSecurityToken")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? XAmzSecurityToken { get; set; }
 }
 
 public partial class RequestUploadUrlsResponse

@@ -1,16 +1,31 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.Extensions.DependencyInjection;
+using Overlayer.Api.Services;
 using Overlayer.TestSupport.Assertions;
 
 namespace Overlayer.Api.Tests.Acceptance;
 
-public class RequestUploadUrlsTests : IClassFixture<WebApplicationFactory<Program>>
+public class RequestUploadUrlsTests : IClassFixture<RequestUploadUrlsTests.NoStsFactory>
 {
     private readonly HttpClient _client;
 
-    public RequestUploadUrlsTests(WebApplicationFactory<Program> factory)
+    public class NoStsFactory : WebApplicationFactory<Program>
+    {
+        protected override void ConfigureWebHost(IWebHostBuilder builder)
+        {
+            builder.ConfigureServices(services =>
+            {
+                services.AddSingleton<IAwsCredentialProvider>(
+                    new StubAwsCredentialProvider("test-access-key", "test-secret-key", null));
+            });
+        }
+    }
+
+    public RequestUploadUrlsTests(NoStsFactory factory)
     {
         _client = factory.CreateClient();
     }
@@ -77,6 +92,29 @@ public class RequestUploadUrlsTests : IClassFixture<WebApplicationFactory<Progra
         var response = await _client.SendAsync(request);
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Get_UploadUrls_WithoutStsCredentials_ResponseDoesNotIncludeSecurityToken()
+    {
+        var jobId = Guid.NewGuid();
+        var request = new HttpRequestMessage(
+            HttpMethod.Get,
+            $"/api/jobs/{jobId}/upload-urls");
+
+        request.Headers.Add("X-Session-ID", Guid.NewGuid().ToString());
+
+        var response = await _client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        var json = await response.Content.ReadFromJsonAsync<JsonElement>();
+
+        var videoFields = json.GetProperty("videoUpload").GetProperty("fields");
+        var overlayFields = json.GetProperty("overlayUpload").GetProperty("fields");
+
+        Assert.False(videoFields.TryGetProperty("xAmzSecurityToken", out _));
+        Assert.False(overlayFields.TryGetProperty("xAmzSecurityToken", out _));
     }
 
     [Fact]

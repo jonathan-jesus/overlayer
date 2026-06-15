@@ -15,6 +15,8 @@ public class S3StorageServiceTests
     private readonly IAmazonS3 _s3 = Substitute.For<IAmazonS3>();
     private readonly S3StorageService _sut;
     private const string Bucket = "test-bucket";
+    private const string Access = "test-access-key";
+    private const string Secret = "test-secret-key";
     private const string SessionId = "aaaaaaaa-0000-0000-0000-000000000000";
     private const string JobId = "bbbbbbbb-1111-1111-1111-111111111111";
 
@@ -24,12 +26,13 @@ public class S3StorageServiceTests
         {
             BucketName = Bucket,
             Region = "us-east-2",
-            AccessKey = "test",
-            SecretKey = "test",
+            AccessKey = Access,
+            SecretKey = Secret,
             ForcePathStyle = true,
             ServiceUrl = "http://localhost:4566"
         });
-        _sut = new S3StorageService(options, _s3, NullLogger<S3StorageService>.Instance);
+        _sut = new S3StorageService(options, _s3, NullLogger<S3StorageService>.Instance,
+            new StubAwsCredentialProvider(options.Value.AccessKey, options.Value.SecretKey, null));
     }
 
     [Fact]
@@ -227,11 +230,12 @@ public class S3StorageServiceTests
         {
             BucketName = Bucket,
             Region = "us-east-2",
-            AccessKey = "test",
-            SecretKey = "test",
+            AccessKey = Access,
+            SecretKey = Secret,
             ForcePathStyle = false
         });
-        var sut = new S3StorageService(options, _s3, NullLogger<S3StorageService>.Instance);
+        var sut = new S3StorageService(options, _s3, NullLogger<S3StorageService>.Instance,
+            new StubAwsCredentialProvider(options.Value.AccessKey, options.Value.SecretKey, null));
 
         var result = await sut.GeneratePresignedPostAsync("some/key", "video/mp4", 1024);
 
@@ -273,7 +277,7 @@ public class S3StorageServiceTests
     {
         var result = await _sut.GeneratePresignedPostAsync("some/key", "video/mp4", 1024);
 
-        Assert.StartsWith("test/", result.Fields.XAmzCredential);
+        Assert.StartsWith($"{Access}/", result.Fields.XAmzCredential);
         Assert.Contains("/us-east-2/", result.Fields.XAmzCredential);
         Assert.EndsWith("/aws4_request", result.Fields.XAmzCredential);
     }
@@ -295,5 +299,53 @@ public class S3StorageServiceTests
         var result = await _sut.GeneratePresignedPostAsync("some/key", "video/mp4", 1024);
 
         Assert.Matches("^[0-9a-f]{64}$", result.Fields.XAmzSignature);
+    }
+
+    [Fact]
+    public async Task GeneratePresignedPostAsync_WithStsCredentials_IncludesSecurityTokenInFields()
+    {
+        var sut = BuildSutWithStsCredentials();
+
+        var result = await sut.GeneratePresignedPostAsync("some/key", "video/mp4", 1024);
+
+        Assert.Equal("fake-session-token", result.Fields.XAmzSecurityToken);
+    }
+
+    [Fact]
+    public async Task GeneratePresignedPostAsync_WithStsCredentials_IncludesSecurityTokenInPolicyConditions()
+    {
+        var sut = BuildSutWithStsCredentials();
+
+        var result = await sut.GeneratePresignedPostAsync("some/key", "video/mp4", 1024);
+
+        var policyJson = Encoding.UTF8.GetString(Convert.FromBase64String(result.Fields.Policy));
+        using var doc = JsonDocument.Parse(policyJson);
+        var conditions = doc.RootElement.GetProperty("conditions");
+        var hasTokenCondition = conditions.EnumerateArray()
+            .Any(c => c.ValueKind == JsonValueKind.Object &&
+                      c.TryGetProperty("x-amz-security-token", out _));
+
+        Assert.True(hasTokenCondition);
+    }
+
+    [Fact]
+    public async Task GeneratePresignedPostAsync_WithStaticCredentials_SecurityTokenIsAbsent()
+    {
+        var result = await _sut.GeneratePresignedPostAsync("some/key", "video/mp4", 1024);
+
+        Assert.Null(result.Fields.XAmzSecurityToken);
+    }
+
+    private S3StorageService BuildSutWithStsCredentials()
+    {
+        var options = Options.Create(new S3Options
+        {
+            BucketName = Bucket,
+            Region = "us-east-2",
+            ForcePathStyle = true,
+            ServiceUrl = "http://localhost:4566"
+        });
+        return new S3StorageService(options, _s3, NullLogger<S3StorageService>.Instance,
+            new StubAwsCredentialProvider(Access, Secret, "fake-session-token"));
     }
 }

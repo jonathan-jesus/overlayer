@@ -15,12 +15,14 @@ public class S3StorageService : IStorageService
     private readonly S3Options _options;
     private readonly IAmazonS3 _s3Client;
     private readonly ILogger<S3StorageService> _logger;
+    private readonly IAwsCredentialProvider _credentialProvider;
 
-    public S3StorageService(IOptions<S3Options> options, IAmazonS3 s3Client, ILogger<S3StorageService> logger)
+    public S3StorageService(IOptions<S3Options> options, IAmazonS3 s3Client, ILogger<S3StorageService> logger, IAwsCredentialProvider credentialProvider)
     {
         _logger = logger;
         _options = options.Value;
         _s3Client = s3Client;
+        _credentialProvider = credentialProvider;
     }
 
     public Task<PresignedUpload> GeneratePresignedPostAsync(string key, string contentType, long maxFileSize)

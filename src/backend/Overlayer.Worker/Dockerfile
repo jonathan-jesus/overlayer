@@ -27,14 +27,12 @@ RUN dotnet publish src/backend/Overlayer.Worker/Overlayer.Worker.csproj \
 # ──────────────────────────────────────────────────────────────────────────────
 # Stage 2 – runtime
 #   Lean Debian-slim image that already carries the .NET 10 runtime.
-#   FFmpeg (which ships ffprobe) is installed via apt-get.
+#   FFmpeg binary is copied from the build stage; no apt packages are needed.
 # ──────────────────────────────────────────────────────────────────────────────
 FROM mcr.microsoft.com/dotnet/runtime:10.0 AS runtime
 
-# Install FFmpeg + FFprobe. The package includes both binaries.
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends ffmpeg \
-    && rm -rf /var/lib/apt/lists/*
+COPY --from=mwader/static-ffmpeg:8.1.1 /ffmpeg /usr/local/bin/ffmpeg
+COPY --from=mwader/static-ffmpeg:8.1.1 /ffprobe /usr/local/bin/ffprobe
 
 ENV DOTNET_ENVIRONMENT=Production
 

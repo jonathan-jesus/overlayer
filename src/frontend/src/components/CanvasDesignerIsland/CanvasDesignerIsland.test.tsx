@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import CanvasDesignerIsland from './CanvasDesignerIsland';
+import CanvasDesignerIsland, { isValidDimension } from './CanvasDesignerIsland';
 import type { PresignedUpload } from '../../api/apiClient';
 import { mockPresignedUpload } from '../../test/fixtures/uploadFixtures';
 
@@ -62,34 +62,100 @@ describe('CanvasDesignerIsland', () => {
   });
 
   describe('Creation tools', () => {
-    it('adds a text element to the list when "Add Text" is clicked', async () => {
-      const user = userEvent.setup();
+    let user: ReturnType<typeof userEvent.setup>;
+
+    beforeEach(() => {
+      user = userEvent.setup();
       render(
         <CanvasDesignerIsland
           overlayPresignedUpload={mockOverlayUpload}
           onOverlayUploaded={vi.fn()}
         />
       );
+    });
 
-      await user.click(screen.getByRole('button', { name: /add text/i }));
-
+    it('adds a text element to the list when "Text" is clicked', async () => {
+      await user.click(screen.getByRole('button', { name: /^text$/i }));
       expect(screen.getAllByRole('listitem')).toHaveLength(1);
     });
 
-    it('removes a text element when its delete button is clicked', async () => {
-      const user = userEvent.setup();
-      render(
-        <CanvasDesignerIsland
-          overlayPresignedUpload={mockOverlayUpload}
-          onOverlayUploaded={vi.fn()}
-        />
-      );
+    it('adds a rect element to the list when "Rectangle" is clicked', async () => {
+      await user.click(screen.getByRole('button', { name: /^rectangle$/i }));
+      const [item] = screen.getAllByRole('listitem');
+      expect(item).toHaveTextContent('Rectangle');
+    });
 
-      await user.click(screen.getByRole('button', { name: /add text/i }));
+    it('opens the image file picker when "Image" is clicked', async () => {
+      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+      const clickSpy = vi.spyOn(fileInput, 'click');
+
+      await user.click(screen.getByRole('button', { name: /^image$/i }));
+      expect(clickSpy).toHaveBeenCalled();
+    });
+
+    it('removes an element when its delete button is clicked', async () => {
+      await user.click(screen.getByRole('button', { name: /^text$/i }));
       expect(screen.getAllByRole('listitem')).toHaveLength(1);
 
       await user.click(screen.getByRole('button', { name: /delete/i }));
       expect(screen.queryAllByRole('listitem')).toHaveLength(0);
+    });
+  })
+
+  describe('Canvas dimensions', () => {
+    it('starts with default canvas dimensions of 1920×1080', () => {
+      render(
+        <CanvasDesignerIsland
+          overlayPresignedUpload={mockOverlayUpload}
+          onOverlayUploaded={vi.fn()}
+        />
+      );
+
+      expect(screen.getByRole('spinbutton', { name: /canvas width/i })).toHaveValue(1920);
+      expect(screen.getByRole('spinbutton', { name: /canvas height/i })).toHaveValue(1080);
+    });
+
+    it('accepts a valid portrait dimension (1080×1920) and updates the canvas', async () => {
+      const user = userEvent.setup();
+      render(
+        <CanvasDesignerIsland
+          overlayPresignedUpload={mockOverlayUpload}
+          onOverlayUploaded={vi.fn()}
+        />
+      );
+
+      const wInput = screen.getByRole('spinbutton', { name: /canvas width/i });
+      const hInput = screen.getByRole('spinbutton', { name: /canvas height/i });
+
+      await user.clear(wInput);
+      await user.type(wInput, '1080');
+      await user.clear(hInput);
+      await user.type(hInput, '1920');
+      await user.tab();
+
+      expect(wInput).not.toHaveAttribute('aria-invalid', 'true');
+      expect(document.querySelector('canvas')).toHaveAttribute('width', '1080');
+      expect(document.querySelector('canvas')).toHaveAttribute('height', '1920');
+    });
+
+    it('rejects an invalid dimension (1920×1920) and keeps the last valid canvas size', async () => {
+      const user = userEvent.setup();
+      render(
+        <CanvasDesignerIsland
+          overlayPresignedUpload={mockOverlayUpload}
+          onOverlayUploaded={vi.fn()}
+        />
+      );
+
+      const hInput = screen.getByRole('spinbutton', { name: /canvas height/i });
+
+      await user.clear(hInput);
+      await user.type(hInput, '1920');
+      await user.tab();
+
+      expect(hInput).toHaveAttribute('aria-invalid', 'true');
+      expect(document.querySelector('canvas')).toHaveAttribute('width', '1920');
+      expect(document.querySelector('canvas')).toHaveAttribute('height', '1080');
     });
   });
 
@@ -130,5 +196,37 @@ describe('CanvasDesignerIsland', () => {
       );
       expect(onOverlayUploaded).not.toHaveBeenCalled();
     });
+  });
+});
+
+describe('isValidDimension', () => {
+  it('accepts valid landscape dimensions', () => {
+    expect(isValidDimension(1920, 1080)).toBe(true);
+    expect(isValidDimension(1280, 720)).toBe(true);
+    expect(isValidDimension(1, 1)).toBe(true);
+  });
+
+  it('accepts valid portrait dimensions', () => {
+    expect(isValidDimension(1080, 1920)).toBe(true);
+    expect(isValidDimension(720, 1280)).toBe(true);
+  });
+
+  it('rejects dimensions that exceed the landscape limit', () => {
+    expect(isValidDimension(1920, 1920)).toBe(false);
+    expect(isValidDimension(1920, 1081)).toBe(false);
+  });
+
+  it('rejects dimensions that exceed the portrait limit', () => {
+    expect(isValidDimension(1081, 1920)).toBe(false);
+  });
+
+  it('rejects out-of-range axis values', () => {
+    expect(isValidDimension(0, 1080)).toBe(false);
+    expect(isValidDimension(1920, 0)).toBe(false);
+    expect(isValidDimension(1921, 1080)).toBe(false);
+  });
+
+  it('rejects non-integer values', () => {
+    expect(isValidDimension(1920.5, 1080)).toBe(false);
   });
 });

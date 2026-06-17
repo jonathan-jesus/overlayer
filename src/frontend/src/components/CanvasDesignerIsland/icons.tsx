@@ -29,3 +29,21 @@ export function ImageIcon(props: IconProps) {
         </svg>
     );
 }
+
+export function LayersIcon(props: IconProps) {
+    return (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" {...props}>
+            <polygon points="12 2 2 7 12 12 22 7 12 2" />
+            <polyline points="2 17 12 22 22 17" />
+            <polyline points="2 12 12 17 22 12" />
+        </svg>
+    );
+}
+
+export function ChevronLeftIcon(props: IconProps) {
+    return (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" {...props}>
+            <polyline points="15 18 9 12 15 6" />
+        </svg>
+    );
+}

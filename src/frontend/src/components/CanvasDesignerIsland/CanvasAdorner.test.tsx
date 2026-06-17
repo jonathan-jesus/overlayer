@@ -101,6 +101,7 @@ describe('CanvasAdorner', () => {
         canvasWidth={CANVAS_WIDTH}
         canvasHeight={CANVAS_HEIGHT}
         onSelect={onSelect}
+        onEditingChange={vi.fn()}
         dispatch={vi.fn()}
       />
     );
@@ -128,6 +129,7 @@ describe('CanvasAdorner', () => {
         canvasWidth={CANVAS_WIDTH}
         canvasHeight={CANVAS_HEIGHT}
         onSelect={onSelect}
+        onEditingChange={vi.fn()}
         dispatch={vi.fn()}
       />
     );
@@ -151,6 +153,7 @@ describe('CanvasAdorner', () => {
         canvasWidth={CANVAS_WIDTH}
         canvasHeight={CANVAS_HEIGHT}
         onSelect={vi.fn()}
+        onEditingChange={vi.fn()}
         dispatch={vi.fn()}
       />
     );
@@ -168,6 +171,7 @@ describe('CanvasAdorner', () => {
         canvasWidth={CANVAS_WIDTH}
         canvasHeight={CANVAS_HEIGHT}
         onSelect={vi.fn()}
+        onEditingChange={vi.fn()}
         dispatch={vi.fn()}
       />
     );
@@ -185,6 +189,7 @@ describe('CanvasAdorner', () => {
         canvasWidth={CANVAS_WIDTH}
         canvasHeight={CANVAS_HEIGHT}
         onSelect={vi.fn()}
+        onEditingChange={vi.fn()}
         dispatch={dispatch}
       />
     );

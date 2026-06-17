@@ -127,4 +127,58 @@ describe('LayerPanel', () => {
       toIndex: 0,
     });
   });
+
+  it('renders a collapse button when onToggle is provided', () => {
+    const onToggle = vi.fn();
+    render(
+      <LayerPanel
+        elements={[]}
+        selectedId={null}
+        onSelect={vi.fn()}
+        dispatch={vi.fn()}
+        isOpen={true}
+        onToggle={onToggle}
+      />
+    );
+
+    const toggleBtn = screen.getByRole('button', { name: /collapse layers panel/i });
+    expect(toggleBtn).toBeInTheDocument();
+  });
+
+  it('triggers onToggle callback when the toggle button is clicked', async () => {
+    const user = userEvent.setup();
+    const onToggle = vi.fn();
+    render(
+      <LayerPanel
+        elements={[]}
+        selectedId={null}
+        onSelect={vi.fn()}
+        dispatch={vi.fn()}
+        isOpen={true}
+        onToggle={onToggle}
+      />
+    );
+
+    const toggleBtn = screen.getByRole('button', { name: /collapse layers panel/i });
+    await user.click(toggleBtn);
+    expect(onToggle).toHaveBeenCalledOnce();
+  });
+
+  it('hides contents and changes accessibility labels when isOpen is false', () => {
+    const onToggle = vi.fn();
+    render(
+      <LayerPanel
+        elements={[makeText({ id: 'a', text: 'A' })]}
+        selectedId={null}
+        onSelect={vi.fn()}
+        dispatch={vi.fn()}
+        isOpen={false}
+        onToggle={onToggle}
+      />
+    );
+
+    expect(screen.queryByText('Layers')).not.toBeInTheDocument();
+    expect(screen.queryByRole('list')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /expand layers panel/i })).toBeInTheDocument();
+  });
 });

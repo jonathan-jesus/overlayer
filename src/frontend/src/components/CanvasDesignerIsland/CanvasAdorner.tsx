@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import type { CanvasElement, CanvasAction } from './canvasReducer';
 import './CanvasAdorner.css';
 
@@ -109,6 +109,8 @@ interface CanvasAdornerProps {
   canvasWidth: number;
   canvasHeight: number;
   onSelect: (id: string | null) => void;
+  editingId?: string | null;
+  onEditingChange: (id: string | null) => void;
   dispatch: React.Dispatch<CanvasAction>;
 }
 
@@ -118,13 +120,33 @@ export default function CanvasAdorner({
   canvasWidth,
   canvasHeight,
   onSelect,
+  editingId = null,
+  onEditingChange,
   dispatch,
 }: CanvasAdornerProps) {
   const adornerRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<DragState | null>(null);
+  const [scaleFactor, setScaleFactor] = useState(1);
+
+  useEffect(() => {
+    const el = adornerRef.current;
+    if (!el) return;
+    const observer = new ResizeObserver(() => {
+      if (canvasWidth > 0) {
+        setScaleFactor(el.offsetWidth / canvasWidth);
+      }
+    });
+    observer.observe(el);
+    if (canvasWidth > 0) {
+      setScaleFactor(el.offsetWidth / canvasWidth);
+    }
+    return () => observer.disconnect();
+  }, [canvasWidth]);
 
   const selectedEl = elements.find((el) => el.id === selectedId) ?? null;
   const selectedBounds = selectedEl ? getElementBounds(selectedEl) : null;
+
+  const isEditing = editingId !== null && editingId === selectedId;
 
   // Express selection box in percentages so no DOM measurements are needed during render
   const selectionStyle = selectedBounds
@@ -235,6 +257,17 @@ export default function CanvasAdorner({
     }
   }
 
+  function handleDoubleClick(e: React.MouseEvent<HTMLDivElement>): void {
+    const { cx, cy } = toCanvasCoords(e.clientX, e.clientY);
+    const hitId = hitTest(elements, cx, cy);
+    if (hitId && hitId === selectedId) {
+      const el = elements.find((el) => el.id === hitId);
+      if (el && el.kind === 'text') {
+        onEditingChange(el.id);
+      }
+    }
+  }
+
   return (
     <div
       ref={adornerRef}
@@ -243,16 +276,50 @@ export default function CanvasAdorner({
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
+      onDoubleClick={handleDoubleClick}
     >
       {selectionStyle && (
         <div className="canvas-adorner__selection" style={selectionStyle}>
-          {HANDLES.map((h) => (
-            <div
-              key={h}
-              data-handle={h}
-              className={`canvas-adorner__handle canvas-adorner__handle--${h}`}
+          {isEditing && selectedEl?.kind === 'text' ? (
+            <textarea
+              className="canvas-adorner__text-input"
+              autoFocus
+              value={selectedEl.text}
+              style={{
+                fontFamily: `"${selectedEl.font}", sans-serif`,
+                fontSize: `${selectedEl.fontSize * selectedEl.scaleY * (scaleFactor || 1)}px`,
+                color: selectedEl.fill,
+                lineHeight: 1,
+                background: 'transparent',
+              }}
+              onPointerDown={(e) => e.stopPropagation()}
+              onDoubleClick={(e) => e.stopPropagation()}
+              onChange={(e) => {
+                dispatch({
+                  type: 'UPDATE_ELEMENT',
+                  id: selectedEl.id,
+                  patch: { text: e.target.value },
+                });
+              }}
+              onBlur={() => {
+                onEditingChange(null);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  e.currentTarget.blur();
+                }
+              }}
             />
-          ))}
+          ) : (
+            HANDLES.map((h) => (
+              <div
+                key={h}
+                data-handle={h}
+                className={`canvas-adorner__handle canvas-adorner__handle--${h}`}
+              />
+            ))
+          )}
         </div>
       )}
     </div>

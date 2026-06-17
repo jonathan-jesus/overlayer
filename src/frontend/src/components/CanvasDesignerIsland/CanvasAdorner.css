@@ -33,3 +33,23 @@
 .canvas-adorner__handle--b  { bottom: -5px; left: 50%; transform: translateX(-50%); cursor: ns-resize; }
 .canvas-adorner__handle--bl { bottom: -5px; left: -5px;            cursor: nesw-resize; }
 .canvas-adorner__handle--l  { top: 50%;   left: -5px;  transform: translateY(-50%); cursor: ew-resize; }
+
+/* Text Editing */
+.canvas-adorner__text-input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  background: var(--color-bg-surface);
+  color: var(--color-text-primary);
+  border: none;
+  font: inherit;
+  margin: 0;
+  padding: 4px;
+  outline: none;
+  resize: none;
+  overflow: hidden;
+  pointer-events: all;
+  box-sizing: border-box;
+  font-family: inherit;
+}

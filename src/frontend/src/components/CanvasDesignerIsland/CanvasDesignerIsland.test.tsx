@@ -46,7 +46,7 @@ describe('CanvasDesignerIsland', () => {
         'aria-disabled',
         'true'
       );
-      expect(screen.queryByRole('button', { name: /upload overlay/i })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /upload/i })).not.toBeInTheDocument();
     });
 
     it('renders the canvas when unlocked', () => {
@@ -177,7 +177,7 @@ describe('CanvasDesignerIsland', () => {
         />
       );
 
-      await user.click(screen.getByRole('button', { name: /upload overlay/i }));
+      await user.click(screen.getByRole('button', { name: /upload/i }));
 
       await waitFor(() => expect(onOverlayUploaded).toHaveBeenCalledOnce());
     });
@@ -195,12 +195,54 @@ describe('CanvasDesignerIsland', () => {
         />
       );
 
-      await user.click(screen.getByRole('button', { name: /upload overlay/i }));
+      await user.click(screen.getByRole('button', { name: /upload/i }));
 
       await waitFor(() =>
         expect(screen.getByRole('alert')).toHaveTextContent(/upload failed/i)
       );
       expect(onOverlayUploaded).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('Sidebar collapsible', () => {
+    it('can toggle the Layers panel open and closed', async () => {
+      const user = userEvent.setup();
+      render(
+        <CanvasDesignerIsland
+          overlayPresignedUpload={mockOverlayUpload}
+          onOverlayUploaded={vi.fn()}
+        />
+      );
+
+      expect(screen.getByText('Layers')).toBeInTheDocument();
+
+      const layersToggle = screen.getByRole('button', { name: /collapse layers panel/i });
+      await user.click(layersToggle);
+      expect(screen.queryByText('Layers')).not.toBeInTheDocument();
+
+      const layersExpand = screen.getByRole('button', { name: /expand layers panel/i });
+      await user.click(layersExpand);
+      expect(screen.getByText('Layers')).toBeInTheDocument();
+    });
+
+    it('can toggle the Properties panel open and closed', async () => {
+      const user = userEvent.setup();
+      render(
+        <CanvasDesignerIsland
+          overlayPresignedUpload={mockOverlayUpload}
+          onOverlayUploaded={vi.fn()}
+        />
+      );
+
+      expect(screen.getByText('Properties')).toBeInTheDocument();
+
+      const propToggle = screen.getByRole('button', { name: /collapse properties panel/i });
+      await user.click(propToggle);
+      expect(screen.queryByText('Properties')).not.toBeInTheDocument();
+
+      const propExpand = screen.getByRole('button', { name: /expand properties panel/i });
+      await user.click(propExpand);
+      expect(screen.getByText('Properties')).toBeInTheDocument();
     });
   });
 });

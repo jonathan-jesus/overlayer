@@ -93,12 +93,18 @@ describe('CanvasDesignerIsland', () => {
       expect(clickSpy).toHaveBeenCalled();
     });
 
-    it('removes an element when its delete button is clicked', async () => {
-      await user.click(screen.getByRole('button', { name: /^text$/i }));
-      expect(screen.getAllByRole('listitem')).toHaveLength(1);
+    it('toolbar Delete button is disabled when no element is selected', () => {
+      expect(screen.getByRole('button', { name: /delete selected element/i })).toBeDisabled();
+    });
 
-      await user.click(screen.getByRole('button', { name: /delete/i }));
-      expect(screen.queryAllByRole('listitem')).toHaveLength(0);
+    it('removes the selected element when the toolbar Delete button is clicked', async () => {
+      await user.click(screen.getByRole('button', { name: /^text$/i }));
+
+      await user.click(screen.getByRole('button', { name: /select text/i }));
+
+      await user.click(screen.getByRole('button', { name: /delete selected element/i }));
+
+      expect(screen.queryByRole('button', { name: /select text/i })).not.toBeInTheDocument();
     });
   })
 

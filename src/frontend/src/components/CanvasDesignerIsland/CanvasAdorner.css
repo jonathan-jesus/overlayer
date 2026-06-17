@@ -1,0 +1,35 @@
+.canvas-adorner {
+  position: absolute;
+  inset: 0;
+  cursor: crosshair;
+}
+
+/* Selection box */
+.canvas-adorner__selection {
+  position: absolute;
+  border: 1.5px dashed var(--color-brand-primary);
+  box-shadow: 0 0 0 1px hsl(0 0% 0% / 0.35);
+  border-radius: 1px;
+  pointer-events: none;
+}
+
+/* Resize handles */
+.canvas-adorner__handle {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  background: var(--color-bg-surface);
+  border: 1.5px solid var(--color-brand-primary);
+  border-radius: 2px;
+  box-shadow: 0 1px 4px hsl(0 0% 0% / 0.4);
+  pointer-events: all;
+}
+
+.canvas-adorner__handle--tl { top: -5px;  left: -5px;              cursor: nwse-resize; }
+.canvas-adorner__handle--t  { top: -5px;  left: 50%; transform: translateX(-50%); cursor: ns-resize; }
+.canvas-adorner__handle--tr { top: -5px;  right: -5px;             cursor: nesw-resize; }
+.canvas-adorner__handle--r  { top: 50%;   right: -5px; transform: translateY(-50%); cursor: ew-resize; }
+.canvas-adorner__handle--br { bottom: -5px; right: -5px;           cursor: nwse-resize; }
+.canvas-adorner__handle--b  { bottom: -5px; left: 50%; transform: translateX(-50%); cursor: ns-resize; }
+.canvas-adorner__handle--bl { bottom: -5px; left: -5px;            cursor: nesw-resize; }
+.canvas-adorner__handle--l  { top: 50%;   left: -5px;  transform: translateY(-50%); cursor: ew-resize; }

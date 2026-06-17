@@ -5,3 +5,6 @@ global.ResizeObserver = class ResizeObserver {
   unobserve() { }
   disconnect() { }
 };
+
+HTMLElement.prototype.setPointerCapture = () => { };
+HTMLElement.prototype.releasePointerCapture = () => { };

@@ -1,0 +1,35 @@
+.editor-layout {
+  display: grid;
+  grid-template-columns: 200px 1fr 260px;
+  gap: var(--space-4);
+  align-items: start;
+  min-height: 0;
+}
+
+.editor-layout__layers,
+.editor-layout__canvas-area,
+.editor-layout__inspector {
+  min-width: 0;
+}
+
+.editor-layout__canvas-area {
+  position: relative;
+}
+
+@media (max-width: 900px) {
+  .editor-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .editor-layout__layers {
+    order: 2;
+  }
+
+  .editor-layout__canvas-area {
+    order: 1;
+  }
+
+  .editor-layout__inspector {
+    order: 3;
+  }
+}

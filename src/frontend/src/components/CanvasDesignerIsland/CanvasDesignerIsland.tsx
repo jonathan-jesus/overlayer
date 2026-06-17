@@ -4,6 +4,9 @@ import { uploadFile } from '../../upload/s3UploadService';
 import type { UploadState } from '../../upload/uploadTypes';
 import { canvasReducer } from './canvasReducer';
 import type { CanvasElement, Shadow } from './canvasReducer';
+import LayerPanel from './LayerPanel';
+import CanvasAdorner from './CanvasAdorner';
+import './EditorLayout.css';
 import './CanvasDesignerIsland.css';
 
 interface CanvasDesignerIslandProps {
@@ -21,16 +24,8 @@ const DEFAULT_CANVAS: CanvasConfig = { width: 1920, height: 1080 };
 export function isValidDimension(w: number, h: number): boolean {
   if (!Number.isInteger(w) || !Number.isInteger(h)) return false;
   if (w < 1 || h < 1 || w > 1920 || h > 1920) return false;
-  if (w >= h) return h <= 1080;  // landscape or square: height must fit landscape limit
-  return w <= 1080;              // portrait: width must fit portrait limit
-}
-
-function getElementLabel(el: CanvasElement): string {
-  switch (el.kind) {
-    case 'text': return el.text;
-    case 'rect': return 'Rectangle';
-    case 'image': return 'Image';
-  }
+  if (w >= h) return h <= 1080;
+  return w <= 1080;
 }
 
 function applyElementShadow(ctx: CanvasRenderingContext2D, shadow: Shadow): void {
@@ -98,6 +93,7 @@ export default function CanvasDesignerIsland({
   onOverlayUploaded,
 }: CanvasDesignerIslandProps) {
   const [elements, dispatch] = useReducer(canvasReducer, []);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [uploadState, setUploadState] = useState<UploadState>('idle');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [canvasConfig, setCanvasConfig] = useState<CanvasConfig>(DEFAULT_CANVAS);
@@ -153,6 +149,12 @@ export default function CanvasDesignerIsland({
     if (isValidDimension(pendingW, pendingH)) {
       setCanvasConfig({ width: pendingW, height: pendingH });
     }
+  }
+
+  function handleDelete(): void {
+    if (!selectedId) return;
+    dispatch({ type: 'DELETE_ELEMENT', id: selectedId });
+    setSelectedId(null);
   }
 
   function handleImageFileChange(e: React.ChangeEvent<HTMLInputElement>): void {
@@ -234,6 +236,15 @@ export default function CanvasDesignerIsland({
             onChange={handleImageFileChange}
             aria-label="Upload image file"
           />
+          <button
+            type="button"
+            className="canvas-designer__btn canvas-designer__btn--danger"
+            onClick={handleDelete}
+            disabled={!selectedId || uploadState === 'uploading'}
+            aria-label="Delete selected element"
+          >
+            Delete
+          </button>
         </div>
 
         <div className="canvas-designer__dimensions">
@@ -285,41 +296,59 @@ export default function CanvasDesignerIsland({
         </p>
       )}
 
-      {elements.length > 0 && (
-        <ul className="canvas-designer__element-list">
-          {elements.map((el) => (
-            <li key={el.id} className="canvas-designer__element-item">
-              <span className="canvas-designer__element-label">{getElementLabel(el)}</span>
-              <button
-                type="button"
-                className="canvas-designer__btn canvas-designer__btn--danger"
-                onClick={() => dispatch({ type: 'DELETE_ELEMENT', id: el.id })}
-                aria-label={`Delete ${getElementLabel(el)}`}
-              >
-                Delete
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
+      <div className="editor-layout">
+        <div className="editor-layout__layers">
+          <LayerPanel
+            elements={elements}
+            selectedId={selectedId}
+            onSelect={setSelectedId}
+            dispatch={dispatch}
+          />
+        </div>
 
-      <div
-        className="canvas-designer__canvas-wrapper"
-        style={{ aspectRatio: `${canvasConfig.width} / ${canvasConfig.height}` }}
-      >
-        {isLocked && (
-          <div className="canvas-designer__lock-overlay" aria-hidden="true">
-            <span className="canvas-designer__lock-icon">🔒</span>
-            <p>Upload a video first to enable the canvas designer</p>
+        <div className="editor-layout__canvas-area">
+          <div
+            className="canvas-designer__canvas-wrapper"
+            style={{ aspectRatio: `${canvasConfig.width} / ${canvasConfig.height}` }}
+          >
+            {isLocked && (
+              <div className="canvas-designer__lock-overlay" aria-hidden="true">
+                <span className="canvas-designer__lock-icon">🔒</span>
+                <p>Upload a video first to enable the canvas designer</p>
+              </div>
+            )}
+            <canvas
+              ref={canvasRef}
+              className="canvas-designer__canvas"
+              width={canvasConfig.width}
+              height={canvasConfig.height}
+              aria-label="Overlay canvas"
+            />
+            {!isLocked && (
+              <CanvasAdorner
+                elements={elements}
+                selectedId={selectedId}
+                canvasWidth={canvasConfig.width}
+                canvasHeight={canvasConfig.height}
+                onSelect={setSelectedId}
+                dispatch={dispatch}
+              />
+            )}
           </div>
-        )}
-        <canvas
-          ref={canvasRef}
-          className="canvas-designer__canvas"
-          width={canvasConfig.width}
-          height={canvasConfig.height}
-          aria-label="Overlay canvas"
-        />
+        </div>
+
+        <div className="editor-layout__inspector">
+          <aside className="inspector-panel" aria-label="Properties">
+            <h3 className="inspector-panel__title">Properties</h3>
+            {selectedId ? (
+              <p className="inspector-panel__hint">Properties coming in Phase 3</p>
+            ) : (
+              <p className="inspector-panel__empty">
+                Select an element to edit its properties
+              </p>
+            )}
+          </aside>
+        </div>
       </div>
     </section>
   );

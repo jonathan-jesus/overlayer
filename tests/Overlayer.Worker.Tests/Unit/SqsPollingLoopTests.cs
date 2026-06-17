@@ -90,4 +90,41 @@ public class SqsPollingLoopTests
         await sqs.Received(1).DeleteMessageAsync(QueueUrl, "receipt-2", Arg.Any<CancellationToken>());
         await sqs.DidNotReceive().DeleteMessageAsync(QueueUrl, "receipt-1", Arg.Any<CancellationToken>());
     }
+
+    [Fact]
+    [Trait("Category", "Unit")]
+    public async Task RunOnceAsync_WhenMessagesCollectionIsNull_DoesNotThrowException()
+    {
+        var sqs = Substitute.For<IAmazonSQS>();
+        var processor = Substitute.For<IJobProcessor>();
+
+        sqs.ReceiveMessageAsync(Arg.Any<ReceiveMessageRequest>(), Arg.Any<CancellationToken>())
+            .Returns(new ReceiveMessageResponse
+            {
+                Messages = null
+            });
+
+        var loop = BuildLoop(sqs, processor);
+
+        var exception = await Record.ExceptionAsync(() => loop.RunOnceAsync());
+
+        Assert.Null(exception);
+    }
+
+    [Fact]
+    [Trait("Category", "Unit")]
+    public async Task RunOnceAsync_WhenResponseIsNull_DoesNotThrowException()
+    {
+        var sqs = Substitute.For<IAmazonSQS>();
+        var processor = Substitute.For<IJobProcessor>();
+
+        sqs.ReceiveMessageAsync(Arg.Any<ReceiveMessageRequest>(), Arg.Any<CancellationToken>())
+            .Returns((ReceiveMessageResponse)null!);
+
+        var loop = BuildLoop(sqs, processor);
+
+        var exception = await Record.ExceptionAsync(() => loop.RunOnceAsync());
+
+        Assert.Null(exception);
+    }
 }

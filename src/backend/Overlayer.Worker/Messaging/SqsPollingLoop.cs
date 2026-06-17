@@ -30,28 +30,31 @@ public class SqsPollingLoop
             WaitTimeSeconds = sqsOptions.WaitTimeSeconds
         }, ct);
 
-        foreach (var message in response.Messages)
+        if (response?.Messages != null)
         {
-            try
+            foreach (var message in response.Messages)
             {
-                var jobInfo = SqsMessageParser.Parse(message.Body);
-
-                bool shouldDelete = true;
-                if (jobInfo != null)
+                try
                 {
-                    shouldDelete = await _processor.HandleAsync(jobInfo.Value.SessionId, jobInfo.Value.JobId);
-                }
+                    var jobInfo = SqsMessageParser.Parse(message.Body);
 
-                if (shouldDelete)
-                {
-                    await _sqs.DeleteMessageAsync(sqsOptions.QueueUrl, message.ReceiptHandle, ct);
+                    bool shouldDelete = true;
+                    if (jobInfo != null)
+                    {
+                        shouldDelete = await _processor.HandleAsync(jobInfo.Value.SessionId, jobInfo.Value.JobId);
+                    }
+
+                    if (shouldDelete)
+                    {
+                        await _sqs.DeleteMessageAsync(sqsOptions.QueueUrl, message.ReceiptHandle, ct);
+                    }
                 }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex,
-                    "Failed to process message {MessageId}.",
-                    message.MessageId);
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex,
+                        "Failed to process message {MessageId}.",
+                        message.MessageId);
+                }
             }
         }
     }

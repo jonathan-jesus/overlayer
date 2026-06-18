@@ -156,6 +156,7 @@ interface CanvasAdornerProps {
   onEditingChange: (id: string | null) => void;
   dispatch: React.Dispatch<CanvasAction>;
   keepProportions: boolean;
+  zoomScale: number;
   onBackgroundPointerDown?: (e: React.PointerEvent<HTMLDivElement>) => void;
 }
 
@@ -169,6 +170,7 @@ export default function CanvasAdorner({
   onEditingChange,
   dispatch,
   keepProportions,
+  zoomScale,
   onBackgroundPointerDown,
 }: CanvasAdornerProps) {
   const adornerRef = useRef<HTMLDivElement>(null);
@@ -347,6 +349,15 @@ export default function CanvasAdorner({
       onPointerUp={handlePointerUp}
       onDoubleClick={handleDoubleClick}
     >
+      <div
+        className="canvas-adorner__hit-area"
+        style={{
+          top: `${-1000 * zoomScale}px`,
+          left: `${-1000 * zoomScale}px`,
+          width: `${(canvasWidth + 2000) * zoomScale}px`,
+          height: `${(canvasHeight + 2000) * zoomScale}px`,
+        }}
+      />
       {selectionStyle && (
         <div className="canvas-adorner__selection" style={selectionStyle}>
           {isEditing && selectedEl?.kind === 'text' ? (

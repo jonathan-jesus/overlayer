@@ -106,6 +106,7 @@ describe('CanvasAdorner', () => {
         onEditingChange={vi.fn()}
         dispatch={vi.fn()}
         keepProportions={false}
+        zoomScale={1}
       />
     );
 
@@ -135,6 +136,7 @@ describe('CanvasAdorner', () => {
         onEditingChange={vi.fn()}
         dispatch={vi.fn()}
         keepProportions={false}
+        zoomScale={1}
       />
     );
 
@@ -160,6 +162,7 @@ describe('CanvasAdorner', () => {
         onEditingChange={vi.fn()}
         dispatch={vi.fn()}
         keepProportions={false}
+        zoomScale={1}
       />
     );
 
@@ -179,6 +182,7 @@ describe('CanvasAdorner', () => {
         onEditingChange={vi.fn()}
         dispatch={vi.fn()}
         keepProportions={false}
+        zoomScale={1}
       />
     );
 
@@ -198,6 +202,7 @@ describe('CanvasAdorner', () => {
         onEditingChange={vi.fn()}
         dispatch={dispatch}
         keepProportions={false}
+        zoomScale={1}
       />
     );
 
@@ -223,6 +228,7 @@ describe('CanvasAdorner', () => {
         onEditingChange={vi.fn()}
         dispatch={dispatch}
         keepProportions={true}
+        zoomScale={1}
       />
     );
 

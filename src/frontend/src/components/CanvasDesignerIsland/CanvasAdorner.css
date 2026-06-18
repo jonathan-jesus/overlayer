@@ -3,6 +3,13 @@
   inset: 0;
 }
 
+/* Hit area for oversized interactions */
+.canvas-adorner__hit-area {
+  position: absolute;
+  background: transparent;
+  pointer-events: all;
+}
+
 /* Selection box */
 .canvas-adorner__selection {
   position: absolute;

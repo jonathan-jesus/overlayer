@@ -491,6 +491,7 @@ export default function CanvasDesignerIsland({
                     onEditingChange={setEditingId}
                     dispatch={dispatch}
                     keepProportions={effectiveKeepProportions}
+                    zoomScale={zoomScale}
                     onBackgroundPointerDown={startPanning}
                   />
                 )}

@@ -69,3 +69,9 @@
     width: auto !important;
   }
 }
+
+@media (max-width: 540px) {
+  .editor-layout {
+    grid-template-columns: 1fr;
+  }
+}

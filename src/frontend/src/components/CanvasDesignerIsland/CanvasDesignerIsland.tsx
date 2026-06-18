@@ -7,7 +7,7 @@ import type { CanvasElement, Shadow } from './canvasReducer';
 import LayerPanel from './LayerPanel';
 import CanvasAdorner from './CanvasAdorner';
 import PropertiesPanel from './PropertiesPanel';
-import { TypeIcon, SquareIcon, ImageIcon, UploadIcon, SpinnerIcon, PropertiesIcon, ChevronRightIcon } from './icons';
+import { TypeIcon, SquareIcon, ImageIcon, UploadIcon, SpinnerIcon, PropertiesIcon, ChevronRightIcon, ZoomOutIcon, ZoomInIcon, ZoomToFitIcon } from './icons';
 import './EditorLayout.css';
 import './CanvasDesignerIsland.css';
 
@@ -22,6 +22,8 @@ interface CanvasConfig {
 }
 
 const DEFAULT_CANVAS: CanvasConfig = { width: 1920, height: 1080 };
+const MIN_ZOOM = 0.1;
+const MAX_ZOOM = 2.0;
 const CANVAS_PADDING = 1000;
 
 export function isValidDimension(w: number, h: number): boolean {
@@ -139,11 +141,34 @@ export default function CanvasDesignerIsland({
   const [canvasConfig, setCanvasConfig] = useState<CanvasConfig>(DEFAULT_CANVAS);
   const [widthInput, setWidthInput] = useState(String(DEFAULT_CANVAS.width));
   const [heightInput, setHeightInput] = useState(String(DEFAULT_CANVAS.height));
+  const [keepCanvasProportions, setKeepCanvasProportions] = useState(false);
   const [isLayersOpen, setIsLayersOpen] = useState(true);
   const [isPropertiesOpen, setIsPropertiesOpen] = useState(true);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [keepProportions, setKeepProportions] = useState(true);
   const [isShiftPressed, setIsShiftPressed] = useState(false);
+
+  const handleWidthInputChange = useCallback((val: string) => {
+    setWidthInput(val);
+    if (keepCanvasProportions) {
+      const w = parseInt(val, 10);
+      if (!Number.isNaN(w) && w > 0 && canvasConfig.width > 0) {
+        const ratio = canvasConfig.height / canvasConfig.width;
+        setHeightInput(String(Math.round(w * ratio)));
+      }
+    }
+  }, [keepCanvasProportions, canvasConfig.width, canvasConfig.height]);
+
+  const handleHeightInputChange = useCallback((val: string) => {
+    setHeightInput(val);
+    if (keepCanvasProportions) {
+      const h = parseInt(val, 10);
+      if (!Number.isNaN(h) && h > 0 && canvasConfig.height > 0) {
+        const ratio = canvasConfig.width / canvasConfig.height;
+        setWidthInput(String(Math.round(h * ratio)));
+      }
+    }
+  }, [keepCanvasProportions, canvasConfig.width, canvasConfig.height]);
 
   const selectedElement = useMemo(
     () => elements.find((el) => el.id === selectedId) ?? null,
@@ -151,11 +176,19 @@ export default function CanvasDesignerIsland({
   );
 
   const [zoomScale, setZoomScale] = useState(1);
+  const [zoomInput, setZoomInput] = useState('100%');
+  const [isZoomInputFocused, setIsZoomInputFocused] = useState(false);
   const [isClipToCanvas, setIsClipToCanvas] = useState(true);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [isPanning, setIsPanning] = useState(false);
   const [lastPanPoint, setLastPanPoint] = useState({ x: 0, y: 0 });
   const viewportRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!isZoomInputFocused) {
+      setZoomInput(`${Math.round(zoomScale * 100)}%`);
+    }
+  }, [zoomScale, isZoomInputFocused]);
 
   const zoomToFit = useCallback(() => {
     if (viewportRef.current) {
@@ -164,7 +197,7 @@ export default function CanvasDesignerIsland({
       const marginY = 40;
       const fitW = (rect.width - marginX) / canvasConfig.width;
       const fitH = (rect.height - marginY) / canvasConfig.height;
-      const initialZoom = Math.min(fitW, fitH, 1);
+      const initialZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, Math.min(fitW, fitH, 1)));
       setZoomScale(initialZoom);
       setPan({
         x: (rect.width - canvasConfig.width * initialZoom) / 2,
@@ -172,6 +205,54 @@ export default function CanvasDesignerIsland({
       });
     }
   }, [canvasConfig.width, canvasConfig.height]);
+
+  const applyZoomAtCenter = useCallback((zoomUpdater: (prev: number) => number) => {
+    setZoomScale((prev) => {
+      const newZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, zoomUpdater(prev)));
+      if (viewportRef.current) {
+        const rect = viewportRef.current.getBoundingClientRect();
+        const centerX = rect.width / 2;
+        const centerY = rect.height / 2;
+        setPan((prevPan) => {
+          const scaleRatio = newZoom / prev;
+          return {
+            x: centerX - (centerX - prevPan.x) * scaleRatio,
+            y: centerY - (centerY - prevPan.y) * scaleRatio,
+          };
+        });
+      }
+      return newZoom;
+    });
+  }, []);
+
+  const handleZoomOut = useCallback(() => {
+    applyZoomAtCenter((prev) => prev - 0.1);
+  }, [applyZoomAtCenter]);
+
+  const handleZoomIn = useCallback(() => {
+    applyZoomAtCenter((prev) => prev + 0.1);
+  }, [applyZoomAtCenter]);
+
+  const commitZoomInput = useCallback(() => {
+    const cleanVal = zoomInput.replace('%', '').trim();
+    const pct = parseFloat(cleanVal);
+    if (!Number.isNaN(pct)) {
+      applyZoomAtCenter(() => pct / 100);
+    } else {
+      setZoomInput(`${Math.round(zoomScale * 100)}%`);
+    }
+  }, [zoomInput, zoomScale, applyZoomAtCenter]);
+
+  const handleZoomKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      commitZoomInput();
+      e.currentTarget.blur();
+    }
+  }, [commitZoomInput]);
+
+  const handleZoomInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setZoomInput(e.target.value);
+  }, []);
 
   useEffect(() => {
     const timer = setTimeout(zoomToFit, 10);
@@ -188,7 +269,7 @@ export default function CanvasDesignerIsland({
       const delta = e.deltaY < 0 ? zoomStep : -zoomStep;
 
       setZoomScale((prev) => {
-        const newZoom = Math.max(0.1, Math.min(5.0, prev + delta));
+        const newZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, prev + delta));
         const rect = viewport.getBoundingClientRect();
         const mouseX = e.clientX - rect.left;
         const mouseY = e.clientY - rect.top;
@@ -264,11 +345,9 @@ export default function CanvasDesignerIsland({
 
   const effectiveKeepProportions = isShiftPressed ? !keepProportions : keepProportions;
 
-  const [prevSelectedId, setPrevSelectedId] = useState<string | null>(null);
-  if (selectedId !== prevSelectedId) {
-    setPrevSelectedId(selectedId);
+  useEffect(() => {
     setEditingId(null);
-  }
+  }, [selectedId]);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const imageCache = useRef<Map<string, HTMLImageElement>>(new Map());
@@ -416,41 +495,52 @@ export default function CanvasDesignerIsland({
           />
         </div>
 
-        <div className="canvas-designer__dimensions">
-          <label className="canvas-designer__dim-label" htmlFor="canvas-width">W</label>
+        <div className="canvas-designer__separator" aria-hidden="true" />
+
+        <div className="canvas-designer__zoom-controls">
+          <button
+            type="button"
+            className="canvas-designer__btn canvas-designer__btn--icon"
+            onClick={handleZoomOut}
+            aria-label="Zoom out"
+          >
+            <ZoomOutIcon />
+          </button>
           <input
-            id="canvas-width"
-            type="number"
-            className={`canvas-designer__dim-input${!isDimensionValid ? ' canvas-designer__dim-input--invalid' : ''}`}
-            value={widthInput}
-            min={1}
-            max={1920}
-            onChange={(e) => setWidthInput(e.target.value)}
-            onBlur={commitDimension}
-            aria-label="Canvas width"
-            aria-invalid={isDimensionValid ? undefined : true}
+            type="text"
+            className="canvas-designer__zoom-value"
+            value={zoomInput}
+            onChange={handleZoomInputChange}
+            onFocus={() => setIsZoomInputFocused(true)}
+            onBlur={() => {
+              setIsZoomInputFocused(false);
+              commitZoomInput();
+            }}
+            onKeyDown={handleZoomKeyDown}
+            aria-label="Current zoom level"
           />
-          <span className="canvas-designer__dim-separator" aria-hidden="true">×</span>
-          <label className="canvas-designer__dim-label" htmlFor="canvas-height">H</label>
-          <input
-            id="canvas-height"
-            type="number"
-            className={`canvas-designer__dim-input${!isDimensionValid ? ' canvas-designer__dim-input--invalid' : ''}`}
-            value={heightInput}
-            min={1}
-            max={1920}
-            onChange={(e) => setHeightInput(e.target.value)}
-            onBlur={commitDimension}
-            aria-label="Canvas height"
-            aria-invalid={isDimensionValid ? undefined : true}
-          />
-          <span className="canvas-designer__dim-unit" aria-hidden="true">px</span>
+          <button
+            type="button"
+            className="canvas-designer__btn canvas-designer__btn--icon"
+            onClick={handleZoomIn}
+            aria-label="Zoom in"
+          >
+            <ZoomInIcon />
+          </button>
+          <button
+            type="button"
+            className="canvas-designer__btn canvas-designer__btn--icon"
+            onClick={zoomToFit}
+            aria-label="Zoom to fit"
+          >
+            <ZoomToFitIcon />
+          </button>
         </div>
 
         {!isLocked && (
           <button
             type="button"
-            className="canvas-designer__btn canvas-designer__btn--primary canvas-designer__btn--with-icon"
+            className="canvas-designer__btn canvas-designer__btn--primary canvas-designer__btn--with-icon canvas-designer__btn--upload"
             onClick={handleUpload}
             disabled={uploadState === 'uploading' || uploadState === 'done'}
           >
@@ -506,14 +596,14 @@ export default function CanvasDesignerIsland({
                 <canvas
                   ref={canvasRef}
                   className="canvas-designer__canvas"
-                  width={canvasConfig.width + 2000}
-                  height={canvasConfig.height + 2000}
+                  width={canvasConfig.width + CANVAS_PADDING * 2}
+                  height={canvasConfig.height + CANVAS_PADDING * 2}
                   style={{
                     position: 'absolute',
-                    top: `${-1000 * zoomScale}px`,
-                    left: `${-1000 * zoomScale}px`,
-                    width: `${(canvasConfig.width + 2000) * zoomScale}px`,
-                    height: `${(canvasConfig.height + 2000) * zoomScale}px`,
+                    top: `${-CANVAS_PADDING * zoomScale}px`,
+                    left: `${-CANVAS_PADDING * zoomScale}px`,
+                    width: `${(canvasConfig.width + CANVAS_PADDING * 2) * zoomScale}px`,
+                    height: `${(canvasConfig.height + CANVAS_PADDING * 2) * zoomScale}px`,
                   }}
                   aria-label="Overlay canvas"
                 />
@@ -533,29 +623,6 @@ export default function CanvasDesignerIsland({
                   />
                 )}
               </div>
-            </div>
-          </div>
-
-          <div className="canvas-designer__bottom-panel">
-            <div className="canvas-designer__bottom-panel-left">
-              <label className="canvas-designer__prop-label">
-                <input
-                  type="checkbox"
-                  className="canvas-designer__prop-checkbox"
-                  checked={isClipToCanvas}
-                  onChange={(e) => setIsClipToCanvas(e.target.checked)}
-                />
-                <span style={{ paddingLeft: '4px' }}>Clip to canvas</span>
-              </label>
-            </div>
-            <div className="canvas-designer__bottom-panel-right">
-              <button
-                type="button"
-                className="canvas-designer__btn"
-                onClick={zoomToFit}
-              >
-                Zoom to fit
-              </button>
             </div>
           </div>
         </div>
@@ -599,6 +666,16 @@ export default function CanvasDesignerIsland({
                 keepProportions={keepProportions}
                 effectiveKeepProportions={effectiveKeepProportions}
                 onKeepProportionsChange={setKeepProportions}
+                widthInput={widthInput}
+                heightInput={heightInput}
+                setWidthInput={handleWidthInputChange}
+                setHeightInput={handleHeightInputChange}
+                commitDimension={commitDimension}
+                isDimensionValid={isDimensionValid}
+                isClipToCanvas={isClipToCanvas}
+                setIsClipToCanvas={setIsClipToCanvas}
+                keepCanvasProportions={keepCanvasProportions}
+                setKeepCanvasProportions={setKeepCanvasProportions}
               />
             )}
           </aside>

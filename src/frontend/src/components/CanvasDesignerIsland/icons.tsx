@@ -143,3 +143,36 @@ export function ChevronRightIcon(props: IconProps) {
         </svg>
     );
 }
+
+export function ZoomOutIcon(props: IconProps) {
+    return (
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" {...props}>
+            <circle cx="11" cy="11" r="8" />
+            <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            <line x1="8" y1="11" x2="14" y2="11" />
+        </svg>
+    );
+}
+
+export function ZoomInIcon(props: IconProps) {
+    return (
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" {...props}>
+            <circle cx="11" cy="11" r="8" />
+            <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            <line x1="11" y1="8" x2="11" y2="14" />
+            <line x1="8" y1="11" x2="14" y2="11" />
+        </svg>
+    );
+}
+
+export function ZoomToFitIcon(props: IconProps) {
+    return (
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" {...props}>
+            <polyline points="4 7 4 4 7 4" />
+            <polyline points="20 7 20 4 17 4" />
+            <polyline points="4 17 4 20 7 20" />
+            <polyline points="20 17 20 20 17 20" />
+            <rect x="9" y="9" width="6" height="6" />
+        </svg>
+    );
+}

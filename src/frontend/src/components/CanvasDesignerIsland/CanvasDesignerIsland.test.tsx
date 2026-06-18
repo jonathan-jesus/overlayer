@@ -43,6 +43,17 @@ describe('CanvasDesignerIsland', () => {
         measureText: vi.fn().mockReturnValue({ width: 100 }),
       } as unknown as CanvasRenderingContext2D;
     });
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({
+      width: 1920,
+      height: 1080,
+      top: 0,
+      left: 0,
+      bottom: 1080,
+      right: 1920,
+      x: 0,
+      y: 0,
+      toJSON: vi.fn(),
+    });
   });
 
   afterEach(() => {
@@ -145,6 +156,61 @@ describe('CanvasDesignerIsland', () => {
     });
   });
 
+  describe('Zoom controls', () => {
+    it('renders zoom controls and handles zoom-in, zoom-out, and zoom-to-fit clicks', async () => {
+      const user = userEvent.setup();
+      render(
+        <CanvasDesignerIsland
+          overlayPresignedUpload={mockOverlayUpload}
+          onOverlayUploaded={vi.fn()}
+        />
+      );
+
+      const zoomInBtn = screen.getByRole('button', { name: /zoom in/i });
+      const zoomOutBtn = screen.getByRole('button', { name: /zoom out/i });
+      const zoomToFitBtn = screen.getByRole('button', { name: /zoom to fit/i });
+      const zoomValue = screen.getByRole('textbox', { name: /current zoom level/i });
+
+      expect(zoomInBtn).toBeInTheDocument();
+      expect(zoomOutBtn).toBeInTheDocument();
+      expect(zoomToFitBtn).toBeInTheDocument();
+      expect(zoomValue).toBeInTheDocument();
+      expect(zoomValue).not.toHaveAttribute('readonly');
+
+      await user.click(zoomInBtn);
+      await user.click(zoomOutBtn);
+      await user.click(zoomToFitBtn);
+    });
+
+    it('allows manual entry of valid zoom level, clamping it to valid range [10%, 200%]', async () => {
+      const user = userEvent.setup();
+      render(
+        <CanvasDesignerIsland
+          overlayPresignedUpload={mockOverlayUpload}
+          onOverlayUploaded={vi.fn()}
+        />
+      );
+
+      const zoomValue = screen.getByRole('textbox', { name: /current zoom level/i });
+
+      await user.clear(zoomValue);
+      await user.type(zoomValue, '150{Enter}');
+      expect(zoomValue).toHaveValue('150%');
+
+      await user.clear(zoomValue);
+      await user.type(zoomValue, '300{Enter}');
+      expect(zoomValue).toHaveValue('200%');
+
+      await user.clear(zoomValue);
+      await user.type(zoomValue, '5{Enter}');
+      expect(zoomValue).toHaveValue('10%');
+
+      await user.clear(zoomValue);
+      await user.type(zoomValue, 'invalid{Enter}');
+      expect(zoomValue).toHaveValue('10%');
+    });
+  });
+
   describe('Canvas dimensions', () => {
     it('starts with default canvas dimensions of 1920×1080', () => {
       render(
@@ -156,6 +222,31 @@ describe('CanvasDesignerIsland', () => {
 
       expect(screen.getByRole('spinbutton', { name: /canvas width/i })).toHaveValue(1920);
       expect(screen.getByRole('spinbutton', { name: /canvas height/i })).toHaveValue(1080);
+    });
+
+    it('updates the other canvas dimension proportionally when aspect ratio lock is enabled', async () => {
+      const user = userEvent.setup();
+      render(
+        <CanvasDesignerIsland
+          overlayPresignedUpload={mockOverlayUpload}
+          onOverlayUploaded={vi.fn()}
+        />
+      );
+
+      const wInput = screen.getByRole('spinbutton', { name: /canvas width/i });
+      const hInput = screen.getByRole('spinbutton', { name: /canvas height/i });
+      const lockBtn = screen.getByRole('button', { name: /lock aspect ratio/i });
+
+      await user.click(lockBtn);
+      expect(screen.getByRole('button', { name: /unlock aspect ratio/i })).toBeInTheDocument();
+
+      await user.clear(wInput);
+      await user.type(wInput, '960');
+      expect(hInput).toHaveValue(540);
+
+      await user.clear(hInput);
+      await user.type(hInput, '270');
+      expect(wInput).toHaveValue(480);
     });
 
     it('accepts a valid portrait dimension (1080×1920) and updates the canvas', async () => {

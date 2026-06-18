@@ -109,6 +109,11 @@
   border-color: var(--color-brand-primary);
 }
 
+.props-panel__input--invalid {
+  border-color: var(--color-error);
+  color: var(--color-error);
+}
+
 /* Slider */
 .props-panel__slider {
   width: 100%;

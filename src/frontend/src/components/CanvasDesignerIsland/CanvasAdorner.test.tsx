@@ -24,6 +24,7 @@ function makeRect(overrides: Partial<RectElement> = {}): RectElement {
     rotation: 0,
     opacity: 100,
     shadow: { color: '#000', distance: 0, angle: 0, blur: 0 },
+    visible: true,
     ...overrides,
   };
 }
@@ -43,6 +44,7 @@ function makeText(overrides: Partial<TextElement> = {}): TextElement {
     rotation: 0,
     opacity: 100,
     shadow: { color: '#000', distance: 0, angle: 0, blur: 0 },
+    visible: true,
     ...overrides,
   };
 }
@@ -103,6 +105,7 @@ describe('CanvasAdorner', () => {
         onSelect={onSelect}
         onEditingChange={vi.fn()}
         dispatch={vi.fn()}
+        keepProportions={false}
       />
     );
 
@@ -131,6 +134,7 @@ describe('CanvasAdorner', () => {
         onSelect={onSelect}
         onEditingChange={vi.fn()}
         dispatch={vi.fn()}
+        keepProportions={false}
       />
     );
 
@@ -155,6 +159,7 @@ describe('CanvasAdorner', () => {
         onSelect={vi.fn()}
         onEditingChange={vi.fn()}
         dispatch={vi.fn()}
+        keepProportions={false}
       />
     );
 
@@ -173,6 +178,7 @@ describe('CanvasAdorner', () => {
         onSelect={vi.fn()}
         onEditingChange={vi.fn()}
         dispatch={vi.fn()}
+        keepProportions={false}
       />
     );
 
@@ -191,6 +197,7 @@ describe('CanvasAdorner', () => {
         onSelect={vi.fn()}
         onEditingChange={vi.fn()}
         dispatch={dispatch}
+        keepProportions={false}
       />
     );
 
@@ -201,5 +208,44 @@ describe('CanvasAdorner', () => {
     expect(dispatch).toHaveBeenCalledWith(
       expect.objectContaining({ type: 'MOVE_ELEMENT', id: 'rect-1' })
     );
+  });
+
+  it('dispatches UPDATE_ELEMENT with proportional scaleX and scaleY when keepProportions is true and corner handles are dragged', () => {
+    const dispatch = vi.fn();
+    const el = makeRect({ id: 'rect-1', x: 0, y: 0, width: 200, height: 100, scaleX: 1, scaleY: 1 });
+    render(
+      <CanvasAdorner
+        elements={[el]}
+        selectedId="rect-1"
+        canvasWidth={CANVAS_WIDTH}
+        canvasHeight={CANVAS_HEIGHT}
+        onSelect={vi.fn()}
+        onEditingChange={vi.fn()}
+        dispatch={dispatch}
+        keepProportions={true}
+      />
+    );
+
+    const brHandle = document.querySelector('[data-handle="br"]')!;
+
+    const canvasToDisplayScale = DISPLAY_WIDTH / CANVAS_WIDTH;
+    const dragX = 20;
+    const dragY = 5;
+
+    fireEvent.pointerDown(brHandle, { clientX: 200 * canvasToDisplayScale, clientY: 100 * canvasToDisplayScale, button: 0 });
+    fireEvent.pointerMove(brHandle, { clientX: (200 * canvasToDisplayScale) + dragX, clientY: (100 * canvasToDisplayScale) + dragY });
+
+    // Dominant axis is X because horizontal drag is larger
+    const dragXInCanvas = dragX / canvasToDisplayScale;
+    const expectedScale = (200 + dragXInCanvas) / 200;
+
+    expect(dispatch).toHaveBeenCalledWith({
+      type: 'UPDATE_ELEMENT',
+      id: 'rect-1',
+      patch: {
+        scaleX: expectedScale,
+        scaleY: expectedScale,
+      },
+    });
   });
 });

@@ -1,12 +1,13 @@
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import type { CanvasElement, CanvasAction } from './canvasReducer';
+import ConfirmModal from './ConfirmModal';
 import './LayerPanel.css';
-import { TypeIcon, SquareIcon, ImageIcon, LayersIcon, ChevronLeftIcon, } from './icons';
+import { TypeIcon, SquareIcon, ImageIcon, LayersIcon, ChevronLeftIcon, EyeIcon, EyeOffIcon, TrashIcon } from './icons';
 
 interface LayerPanelProps {
   elements: CanvasElement[];
   selectedId: string | null;
-  onSelect: (id: string) => void;
+  onSelect: (id: string | null) => void;
   dispatch: React.Dispatch<CanvasAction>;
   isOpen?: boolean;
   onToggle?: () => void;
@@ -40,6 +41,8 @@ export default function LayerPanel({
 
   const dragFromRef = useRef<number | null>(null);
 
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+
   function handleDragStart(displayIndex: number): void {
     dragFromRef.current = displayIndex;
   }
@@ -60,6 +63,8 @@ export default function LayerPanel({
 
     dispatch({ type: 'REORDER_ELEMENTS', fromIndex, toIndex });
   }
+
+  const elementToDelete = deleteConfirmId ? elements.find((el) => el.id === deleteConfirmId) : null;
 
   return (
     <aside className={`layer-panel ${!isOpen ? 'layer-panel--collapsed' : ''}`} aria-label="Layers">
@@ -103,7 +108,7 @@ export default function LayerPanel({
               {reversed.map((el, displayIndex) => (
                 <li
                   key={el.id}
-                  className={`layer-panel__item${el.id === selectedId ? ' layer-panel__item--selected' : ''}`}
+                  className={`layer-panel__item${el.id === selectedId ? ' layer-panel__item--selected' : ''}${!el.visible ? ' layer-panel__item--hidden' : ''}`}
                   draggable
                   onDragStart={() => handleDragStart(displayIndex)}
                   onDragOver={handleDragOver}
@@ -121,12 +126,60 @@ export default function LayerPanel({
                     </span>
                     <span className="layer-panel__label">{getElementLabel(el)}</span>
                   </button>
+                  <div className="layer-panel__actions">
+                    <button
+                      type="button"
+                      className="layer-panel__action-btn"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        dispatch({
+                          type: 'UPDATE_ELEMENT',
+                          id: el.id,
+                          patch: { visible: !el.visible },
+                        });
+                      }}
+                      aria-label={el.visible ? 'Hide layer' : 'Show layer'}
+                    >
+                      {el.visible ? <EyeIcon /> : <EyeOffIcon />}
+                    </button>
+                    <button
+                      type="button"
+                      className="layer-panel__action-btn layer-panel__action-btn--delete"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setDeleteConfirmId(el.id);
+                      }}
+                      aria-label="Delete layer"
+                    >
+                      <TrashIcon />
+                    </button>
+                  </div>
                 </li>
               ))}
             </ul>
           )}
         </>
       )}
+      <ConfirmModal
+        isOpen={deleteConfirmId !== null}
+        title="Delete Layer"
+        message={`Are you sure you want to delete the layer "${elementToDelete
+          ? getElementLabel(elementToDelete)
+          : ''
+          }"? This action cannot be undone.`}
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        onConfirm={() => {
+          if (deleteConfirmId) {
+            dispatch({ type: 'DELETE_ELEMENT', id: deleteConfirmId });
+            if (selectedId === deleteConfirmId) {
+              onSelect(null);
+            }
+            setDeleteConfirmId(null);
+          }
+        }}
+        onCancel={() => setDeleteConfirmId(null)}
+      />
     </aside>
   );
 }

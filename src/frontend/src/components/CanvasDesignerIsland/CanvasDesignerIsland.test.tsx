@@ -93,20 +93,41 @@ describe('CanvasDesignerIsland', () => {
       expect(clickSpy).toHaveBeenCalled();
     });
 
-    it('toolbar Delete button is disabled when no element is selected', () => {
-      expect(screen.getByRole('button', { name: /delete selected element/i })).toBeDisabled();
-    });
-
-    it('removes the selected element when the toolbar Delete button is clicked', async () => {
+    it('removes the selected element when the layer Delete button is clicked and confirmed in custom modal', async () => {
       await user.click(screen.getByRole('button', { name: /^text$/i }));
 
-      await user.click(screen.getByRole('button', { name: /select text/i }));
+      await user.click(screen.getByRole('button', { name: /delete layer/i }));
 
-      await user.click(screen.getByRole('button', { name: /delete selected element/i }));
+      expect(screen.getByRole('dialog', { name: /delete layer/i })).toBeInTheDocument();
+
+      await user.click(screen.getByRole('button', { name: /^delete$/i }));
 
       expect(screen.queryByRole('button', { name: /select text/i })).not.toBeInTheDocument();
     });
   })
+
+  describe('Keep proportions', () => {
+    it('shows Keep proportions checkbox only when an element is selected', async () => {
+      const user = userEvent.setup();
+      render(
+        <CanvasDesignerIsland
+          overlayPresignedUpload={mockOverlayUpload}
+          onOverlayUploaded={vi.fn()}
+        />
+      );
+
+      expect(screen.queryByLabelText(/keep proportions/i)).not.toBeInTheDocument();
+
+      await user.click(screen.getByRole('button', { name: /^text$/i }));
+      await user.click(screen.getByRole('button', { name: /select text/i }));
+
+      expect(screen.getByLabelText(/keep proportions/i)).toBeInTheDocument();
+      expect(screen.getByLabelText(/keep proportions/i)).not.toBeChecked();
+
+      await user.click(screen.getByLabelText(/keep proportions/i));
+      expect(screen.getByLabelText(/keep proportions/i)).toBeChecked();
+    });
+  });
 
   describe('Canvas dimensions', () => {
     it('starts with default canvas dimensions of 1920×1080', () => {

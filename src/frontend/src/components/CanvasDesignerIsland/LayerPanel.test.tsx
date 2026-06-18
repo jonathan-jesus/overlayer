@@ -19,6 +19,7 @@ function makeText(overrides: Partial<TextElement> = {}): TextElement {
     rotation: 0,
     opacity: 100,
     shadow: { color: '#000000', distance: 0, angle: 135, blur: 0 },
+    visible: true,
     ...overrides,
   };
 }
@@ -39,6 +40,7 @@ function makeRect(overrides: Partial<RectElement> = {}): RectElement {
     rotation: 0,
     opacity: 100,
     shadow: { color: '#000000', distance: 0, angle: 135, blur: 0 },
+    visible: true,
     ...overrides,
   };
 }

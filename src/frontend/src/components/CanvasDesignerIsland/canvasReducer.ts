@@ -14,6 +14,7 @@ interface BaseElement {
   rotation: number;
   opacity: number;
   shadow: Shadow;
+  visible: boolean;
 }
 
 export interface TextElement extends BaseElement {
@@ -69,6 +70,7 @@ const BASE_DEFAULTS = {
   rotation: 0,
   opacity: 100,
   shadow: DEFAULT_SHADOW,
+  visible: true,
 };
 
 const DEFAULT_TEXT: Omit<TextElement, 'id'> = {

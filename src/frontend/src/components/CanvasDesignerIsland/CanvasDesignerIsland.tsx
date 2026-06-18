@@ -274,7 +274,14 @@ export default function CanvasDesignerIsland({
       const src = ev.target?.result as string;
       const img = new Image();
       img.onload = () => {
-        dispatch({ type: 'ADD_IMAGE', src, width: img.naturalWidth, height: img.naturalHeight });
+        dispatch({ 
+          type: 'ADD_IMAGE', 
+          src, 
+          width: img.naturalWidth, 
+          height: img.naturalHeight,
+          x: canvasConfig.width / 2 - img.naturalWidth / 2,
+          y: canvasConfig.height / 2 - img.naturalHeight / 2
+        });
       };
       img.src = src;
     };
@@ -332,7 +339,7 @@ export default function CanvasDesignerIsland({
           <button
             type="button"
             className="canvas-designer__btn canvas-designer__btn--icon"
-            onClick={() => dispatch({ type: 'ADD_TEXT' })}
+            onClick={() => dispatch({ type: 'ADD_TEXT', x: canvasConfig.width / 2 - 40, y: canvasConfig.height / 2 - 16 })}
             disabled={isLocked || uploadState === 'uploading'}
             aria-label="Text"
           >
@@ -341,7 +348,7 @@ export default function CanvasDesignerIsland({
           <button
             type="button"
             className="canvas-designer__btn canvas-designer__btn--icon"
-            onClick={() => dispatch({ type: 'ADD_RECT' })}
+            onClick={() => dispatch({ type: 'ADD_RECT', x: canvasConfig.width / 2 - 100, y: canvasConfig.height / 2 - 50 })}
             disabled={isLocked || uploadState === 'uploading'}
             aria-label="Rectangle"
           >

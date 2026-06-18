@@ -47,9 +47,9 @@ export type ElementPatch<T> = T extends unknown ? Partial<Omit<T, 'id' | 'kind'>
 export type CanvasElementPatch = ElementPatch<CanvasElement>;
 
 export type CanvasAction =
-  | { type: 'ADD_TEXT' }
-  | { type: 'ADD_RECT' }
-  | { type: 'ADD_IMAGE'; src: string; width: number; height: number }
+  | { type: 'ADD_TEXT'; x?: number; y?: number }
+  | { type: 'ADD_RECT'; x?: number; y?: number }
+  | { type: 'ADD_IMAGE'; src: string; width: number; height: number; x?: number; y?: number }
   | { type: 'REORDER_ELEMENTS'; fromIndex: number; toIndex: number }
   | { type: 'UPDATE_ELEMENT'; id: string; patch: CanvasElementPatch }
   | { type: 'MOVE_ELEMENT'; id: string; x: number; y: number }
@@ -95,10 +95,10 @@ const DEFAULT_RECT: Omit<RectElement, 'id'> = {
 export function canvasReducer(state: CanvasElement[], action: CanvasAction): CanvasElement[] {
   switch (action.type) {
     case 'ADD_TEXT':
-      return [...state, { id: crypto.randomUUID(), ...DEFAULT_TEXT }];
+      return [...state, { id: crypto.randomUUID(), ...DEFAULT_TEXT, x: action.x ?? DEFAULT_TEXT.x, y: action.y ?? DEFAULT_TEXT.y }];
 
     case 'ADD_RECT':
-      return [...state, { id: crypto.randomUUID(), ...DEFAULT_RECT }];
+      return [...state, { id: crypto.randomUUID(), ...DEFAULT_RECT, x: action.x ?? DEFAULT_RECT.x, y: action.y ?? DEFAULT_RECT.y }];
 
     case 'ADD_IMAGE':
       return [
@@ -110,6 +110,8 @@ export function canvasReducer(state: CanvasElement[], action: CanvasAction): Can
           src: action.src,
           width: action.width,
           height: action.height,
+          x: action.x ?? BASE_DEFAULTS.x,
+          y: action.y ?? BASE_DEFAULTS.y,
         },
       ];
 

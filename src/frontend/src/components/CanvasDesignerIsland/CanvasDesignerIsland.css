@@ -33,18 +33,6 @@
   margin-left: auto;
 }
 
-/* Proportions checkbox */
-.canvas-designer__proportions {
-  margin-left: auto;
-  margin-right: auto;
-  display: flex;
-  align-items: center;
-}
-
-.canvas-designer__toolbar:has(.canvas-designer__proportions) .canvas-designer__dimensions {
-  margin-left: 0;
-}
-
 .canvas-designer__prop-label {
   display: flex;
   align-items: center;

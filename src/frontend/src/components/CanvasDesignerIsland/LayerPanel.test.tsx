@@ -18,7 +18,7 @@ function makeText(overrides: Partial<TextElement> = {}): TextElement {
     scaleY: 1,
     rotation: 0,
     opacity: 100,
-    shadow: { color: '#000000', distance: 0, angle: 135, blur: 0 },
+    shadow: { color: '#000000', opacity: 100, distance: 0, angle: 135, blur: 0 },
     visible: true,
     ...overrides,
   };
@@ -31,6 +31,7 @@ function makeRect(overrides: Partial<RectElement> = {}): RectElement {
     fill: '#6366f1',
     stroke: '#ffffff',
     strokeWidth: 0,
+    strokeAlign: 'center',
     width: 200,
     height: 100,
     x: 10,
@@ -39,7 +40,7 @@ function makeRect(overrides: Partial<RectElement> = {}): RectElement {
     scaleY: 1,
     rotation: 0,
     opacity: 100,
-    shadow: { color: '#000000', distance: 0, angle: 135, blur: 0 },
+    shadow: { color: '#000000', opacity: 100, distance: 0, angle: 135, blur: 0 },
     visible: true,
     ...overrides,
   };

@@ -1,4 +1,4 @@
-import { useReducer, useEffect, useRef, useState, useCallback } from 'react';
+import { useReducer, useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import type { PresignedUpload } from '../../api/apiClient';
 import { uploadFile } from '../../upload/s3UploadService';
 import type { UploadState } from '../../upload/uploadTypes';
@@ -6,7 +6,8 @@ import { canvasReducer } from './canvasReducer';
 import type { CanvasElement, Shadow } from './canvasReducer';
 import LayerPanel from './LayerPanel';
 import CanvasAdorner from './CanvasAdorner';
-import { TypeIcon, SquareIcon, ImageIcon, UploadIcon, SpinnerIcon, PropertiesIcon, LockIcon, UnlockIcon, ChevronRightIcon } from './icons';
+import PropertiesPanel from './PropertiesPanel';
+import { TypeIcon, SquareIcon, ImageIcon, UploadIcon, SpinnerIcon, PropertiesIcon, ChevronRightIcon } from './icons';
 import './EditorLayout.css';
 import './CanvasDesignerIsland.css';
 
@@ -30,10 +31,18 @@ export function isValidDimension(w: number, h: number): boolean {
   return w <= 1080;
 }
 
+function hexToRgb(hex: string): [number, number, number] {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return [r, g, b];
+}
+
 function applyElementShadow(ctx: CanvasRenderingContext2D, shadow: Shadow): void {
   if (shadow.distance === 0 && shadow.blur === 0) return;
   const rad = (shadow.angle * Math.PI) / 180;
-  ctx.shadowColor = shadow.color;
+  const [r, g, b] = hexToRgb(shadow.color);
+  ctx.shadowColor = `rgba(${r}, ${g}, ${b}, ${shadow.opacity / 100})`;
   ctx.shadowBlur = shadow.blur;
   ctx.shadowOffsetX = Math.cos(rad) * shadow.distance;
   ctx.shadowOffsetY = Math.sin(rad) * shadow.distance;
@@ -65,9 +74,38 @@ function drawElement(
       ctx.fillStyle = el.fill;
       ctx.fillRect(0, 0, w, h);
       if (el.strokeWidth > 0) {
+        // Clear shadow so the stroke doesn't cast a separate shadow
+        ctx.shadowColor = 'transparent';
+        ctx.shadowBlur = 0;
+        ctx.shadowOffsetX = 0;
+        ctx.shadowOffsetY = 0;
         ctx.strokeStyle = el.stroke;
-        ctx.lineWidth = el.strokeWidth;
-        ctx.strokeRect(0, 0, w, h);
+
+        if (el.strokeAlign === 'center') {
+          ctx.lineWidth = el.strokeWidth;
+          ctx.strokeRect(0, 0, w, h);
+        } else if (el.strokeAlign === 'inside') {
+          ctx.save();
+          ctx.beginPath();
+          ctx.rect(0, 0, w, h);
+          ctx.clip();
+          ctx.lineWidth = el.strokeWidth * 2;
+          ctx.strokeRect(0, 0, w, h);
+          ctx.restore();
+        } else {
+          // outside
+          ctx.save();
+          ctx.beginPath();
+          ctx.rect(
+            -el.strokeWidth, -el.strokeWidth,
+            w + el.strokeWidth * 2, h + el.strokeWidth * 2,
+          );
+          ctx.rect(0, 0, w, h);
+          ctx.clip('evenodd');
+          ctx.lineWidth = el.strokeWidth * 2;
+          ctx.strokeRect(0, 0, w, h);
+          ctx.restore();
+        }
       }
       break;
     }
@@ -104,8 +142,13 @@ export default function CanvasDesignerIsland({
   const [isLayersOpen, setIsLayersOpen] = useState(true);
   const [isPropertiesOpen, setIsPropertiesOpen] = useState(true);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [keepProportions, setKeepProportions] = useState(false);
+  const [keepProportions, setKeepProportions] = useState(true);
   const [isShiftPressed, setIsShiftPressed] = useState(false);
+
+  const selectedElement = useMemo(
+    () => elements.find((el) => el.id === selectedId) ?? null,
+    [elements, selectedId],
+  );
 
   const [zoomScale, setZoomScale] = useState(1);
   const [isClipToCanvas, setIsClipToCanvas] = useState(true);
@@ -274,10 +317,10 @@ export default function CanvasDesignerIsland({
       const src = ev.target?.result as string;
       const img = new Image();
       img.onload = () => {
-        dispatch({ 
-          type: 'ADD_IMAGE', 
-          src, 
-          width: img.naturalWidth, 
+        dispatch({
+          type: 'ADD_IMAGE',
+          src,
+          width: img.naturalWidth,
           height: img.naturalHeight,
           x: canvasConfig.width / 2 - img.naturalWidth / 2,
           y: canvasConfig.height / 2 - img.naturalHeight / 2
@@ -372,21 +415,6 @@ export default function CanvasDesignerIsland({
             aria-label="Upload image file"
           />
         </div>
-
-        {selectedId !== null && (
-          <div className="canvas-designer__proportions">
-            <label className="canvas-designer__prop-label">
-              <input
-                type="checkbox"
-                className="canvas-designer__prop-checkbox"
-                checked={effectiveKeepProportions}
-                onChange={(e) => setKeepProportions(e.target.checked)}
-              />
-              {effectiveKeepProportions ? <LockIcon /> : <UnlockIcon />}
-              <span>Keep proportions</span>
-            </label>
-          </div>
-        )}
 
         <div className="canvas-designer__dimensions">
           <label className="canvas-designer__dim-label" htmlFor="canvas-width">W</label>
@@ -565,15 +593,13 @@ export default function CanvasDesignerIsland({
               )}
             </div>
             {isPropertiesOpen && (
-              <>
-                {selectedId ? (
-                  <p className="inspector-panel__hint">Properties coming in Phase 3</p>
-                ) : (
-                  <p className="inspector-panel__empty">
-                    Select an element to edit its properties
-                  </p>
-                )}
-              </>
+              <PropertiesPanel
+                selectedElement={selectedElement}
+                dispatch={dispatch}
+                keepProportions={keepProportions}
+                effectiveKeepProportions={effectiveKeepProportions}
+                onKeepProportionsChange={setKeepProportions}
+              />
             )}
           </aside>
         </div>

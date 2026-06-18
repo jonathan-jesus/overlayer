@@ -122,7 +122,7 @@ describe('CanvasDesignerIsland', () => {
   })
 
   describe('Keep proportions', () => {
-    it('shows Keep proportions checkbox only when an element is selected', async () => {
+    it('shows the lock-proportions button only when an element is selected', async () => {
       const user = userEvent.setup();
       render(
         <CanvasDesignerIsland
@@ -131,16 +131,17 @@ describe('CanvasDesignerIsland', () => {
         />
       );
 
-      expect(screen.queryByLabelText(/keep proportions/i)).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /lock proportions/i })).not.toBeInTheDocument();
 
       await user.click(screen.getByRole('button', { name: /^text$/i }));
       await user.click(screen.getByRole('button', { name: /select text/i }));
 
-      expect(screen.getByLabelText(/keep proportions/i)).toBeInTheDocument();
-      expect(screen.getByLabelText(/keep proportions/i)).not.toBeChecked();
+      const lockBtn = screen.getByRole('button', { name: /unlock proportions/i });
+      expect(lockBtn).toBeInTheDocument();
+      expect(lockBtn).toHaveAttribute('aria-pressed', 'true');
 
-      await user.click(screen.getByLabelText(/keep proportions/i));
-      expect(screen.getByLabelText(/keep proportions/i)).toBeChecked();
+      await user.click(lockBtn);
+      expect(screen.getByRole('button', { name: /lock proportions/i })).toBeInTheDocument();
     });
   });
 

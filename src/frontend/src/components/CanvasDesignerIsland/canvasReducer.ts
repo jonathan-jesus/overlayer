@@ -1,5 +1,6 @@
 export interface Shadow {
   color: string;
+  opacity: number;
   distance: number;
   angle: number;
   blur: number;
@@ -30,6 +31,7 @@ export interface RectElement extends BaseElement {
   fill: string;
   stroke: string;
   strokeWidth: number;
+  strokeAlign: 'inside' | 'center' | 'outside';
   width: number;
   height: number;
 }
@@ -57,6 +59,7 @@ export type CanvasAction =
 
 const DEFAULT_SHADOW: Shadow = {
   color: '#000000',
+  opacity: 100,
   distance: 0,
   angle: 135,
   blur: 0,
@@ -88,6 +91,7 @@ const DEFAULT_RECT: Omit<RectElement, 'id'> = {
   fill: '#6366f1',
   stroke: '#ffffff',
   strokeWidth: 0,
+  strokeAlign: 'center',
   width: 200,
   height: 100,
 };

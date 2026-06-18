@@ -13,13 +13,18 @@
 .editor-layout__inspector {
   position: absolute;
   top: var(--space-4);
+  bottom: var(--space-4);
   z-index: 10;
   pointer-events: none;
+  display: flex;
+  flex-direction: column;
 }
 
 .editor-layout__layers > *,
 .editor-layout__inspector > * {
   pointer-events: auto;
+  flex: 1;
+  min-height: 0;
 }
 
 .editor-layout__layers {
@@ -44,17 +49,23 @@
 
 @media (max-width: 900px) {
   .editor-layout {
-    display: flex;
-    flex-direction: column;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
     gap: var(--space-4);
+  }
+
+  .editor-layout__canvas-area {
+    grid-column: 1 / -1;
+    order: -1;
   }
   
   .editor-layout__layers,
   .editor-layout__inspector {
     position: relative;
     top: auto;
+    bottom: auto;
     left: auto;
     right: auto;
-    width: 100% !important;
+    width: auto !important;
   }
 }

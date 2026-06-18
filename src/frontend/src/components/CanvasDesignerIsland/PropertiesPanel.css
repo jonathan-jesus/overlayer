@@ -4,6 +4,26 @@
   flex-direction: column;
   gap: var(--space-1);
   overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+}
+
+.props-panel::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.props-panel::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.props-panel::-webkit-scrollbar-thumb {
+  background: hsl(230 20% 95% / 0.1);
+  border-radius: var(--radius-full);
+}
+
+.props-panel::-webkit-scrollbar-thumb:hover {
+  background: hsl(230 20% 95% / 0.2);
 }
 
 .props-panel__empty {

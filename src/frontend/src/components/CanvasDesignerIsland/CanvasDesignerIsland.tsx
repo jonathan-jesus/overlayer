@@ -117,8 +117,10 @@ export default function CanvasDesignerIsland({
   const zoomToFit = useCallback(() => {
     if (viewportRef.current) {
       const rect = viewportRef.current.getBoundingClientRect();
-      const fitW = (rect.width - 40) / canvasConfig.width;
-      const fitH = (rect.height - 40) / canvasConfig.height;
+      const marginX = 320;
+      const marginY = 40;
+      const fitW = (rect.width - marginX) / canvasConfig.width;
+      const fitH = (rect.height - marginY) / canvasConfig.height;
       const initialZoom = Math.min(fitW, fitH, 1);
       setZoomScale(initialZoom);
       setPan({

@@ -1,63 +1,60 @@
 .editor-layout {
-  display: grid;
-  grid-template-columns: 200px 1fr 260px;
-  gap: var(--space-4);
-  align-items: start;
+  position: relative;
+  display: block;
   min-height: 0;
-  transition: grid-template-columns var(--transition-base);
-}
-
-.editor-layout.editor-layout--collapsed-layers {
-  grid-template-columns: 48px 1fr 260px;
-}
-
-.editor-layout.editor-layout--collapsed-properties {
-  grid-template-columns: 200px 1fr 48px;
-}
-
-.editor-layout.editor-layout--collapsed-layers.editor-layout--collapsed-properties {
-  grid-template-columns: 48px 1fr 48px;
-}
-
-.editor-layout__layers,
-.editor-layout__canvas-area,
-.editor-layout__inspector {
-  min-width: 0;
 }
 
 .editor-layout__canvas-area {
   position: relative;
+  width: 100%;
+}
+
+.editor-layout__layers,
+.editor-layout__inspector {
+  position: absolute;
+  top: var(--space-4);
+  z-index: 10;
+  pointer-events: none;
+}
+
+.editor-layout__layers > *,
+.editor-layout__inspector > * {
+  pointer-events: auto;
+}
+
+.editor-layout__layers {
+  left: var(--space-4);
+  width: 200px;
+  transition: width var(--transition-base);
+}
+
+.editor-layout__inspector {
+  right: var(--space-4);
+  width: 260px;
+  transition: width var(--transition-base);
+}
+
+.editor-layout.editor-layout--collapsed-layers .editor-layout__layers {
+  width: 48px;
+}
+
+.editor-layout.editor-layout--collapsed-properties .editor-layout__inspector {
+  width: 48px;
 }
 
 @media (max-width: 900px) {
   .editor-layout {
-    grid-template-columns: 1fr 1fr;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
   }
-
-  .editor-layout.editor-layout--collapsed-layers {
-    grid-template-columns: 48px 1fr;
-  }
-
-  .editor-layout.editor-layout--collapsed-properties {
-    grid-template-columns: 1fr 48px;
-  }
-
-  .editor-layout.editor-layout--collapsed-layers.editor-layout--collapsed-properties {
-    grid-template-columns: 48px 1fr 48px;
-  }
-
-  .editor-layout__canvas-area {
-    grid-column: 1 / -1;
-    grid-row: 1;
-  }
-
-  .editor-layout__layers {
-    grid-column: 1;
-    grid-row: 2;
-  }
-
+  
+  .editor-layout__layers,
   .editor-layout__inspector {
-    grid-column: -2 / -1;
-    grid-row: 2;
+    position: relative;
+    top: auto;
+    left: auto;
+    right: auto;
+    width: 100% !important;
   }
 }

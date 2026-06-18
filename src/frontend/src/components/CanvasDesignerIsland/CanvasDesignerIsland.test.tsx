@@ -28,6 +28,21 @@ describe('CanvasDesignerIsland', () => {
     vi.spyOn(HTMLCanvasElement.prototype, 'toBlob').mockImplementation(
       (callback) => callback(new Blob(['png'], { type: 'image/png' }))
     );
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation(() => {
+      return {
+        clearRect: vi.fn(),
+        save: vi.fn(),
+        restore: vi.fn(),
+        translate: vi.fn(),
+        scale: vi.fn(),
+        rotate: vi.fn(),
+        fillText: vi.fn(),
+        fillRect: vi.fn(),
+        strokeRect: vi.fn(),
+        drawImage: vi.fn(),
+        measureText: vi.fn().mockReturnValue({ width: 100 }),
+      } as unknown as CanvasRenderingContext2D;
+    });
   });
 
   afterEach(() => {
@@ -161,8 +176,8 @@ describe('CanvasDesignerIsland', () => {
       await user.tab();
 
       expect(wInput).not.toHaveAttribute('aria-invalid', 'true');
-      expect(document.querySelector('canvas')).toHaveAttribute('width', '1080');
-      expect(document.querySelector('canvas')).toHaveAttribute('height', '1920');
+      expect(document.querySelector('canvas')).toHaveAttribute('width', '3080'); // 1080 + 2000 padding
+      expect(document.querySelector('canvas')).toHaveAttribute('height', '3920'); // 1920 + 2000 padding
     });
 
     it('rejects an invalid dimension (1920×1920) and keeps the last valid canvas size', async () => {
@@ -181,8 +196,9 @@ describe('CanvasDesignerIsland', () => {
       await user.tab();
 
       expect(hInput).toHaveAttribute('aria-invalid', 'true');
-      expect(document.querySelector('canvas')).toHaveAttribute('width', '1920');
-      expect(document.querySelector('canvas')).toHaveAttribute('height', '1080');
+      // Canvas should retain the last valid dimensions plus 2000 padding
+      expect(document.querySelector('canvas')).toHaveAttribute('width', '3920');
+      expect(document.querySelector('canvas')).toHaveAttribute('height', '3080');
     });
   });
 

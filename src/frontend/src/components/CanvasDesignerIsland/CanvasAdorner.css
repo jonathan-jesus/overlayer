@@ -1,7 +1,6 @@
 .canvas-adorner {
   position: absolute;
   inset: 0;
-  cursor: crosshair;
 }
 
 /* Selection box */

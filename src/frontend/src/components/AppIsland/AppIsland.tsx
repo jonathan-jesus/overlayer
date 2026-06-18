@@ -50,7 +50,7 @@ export default function AppIsland() {
 
         {appState.stage === 'design' && (
           <>
-            <section className="app__section" aria-label="Design overlay">
+            <section className="app__section app__section--wide" aria-label="Design overlay">
               <h2 className="app__section-title">Design your overlay</h2>
               <p className="app__section-description">
                 Add text elements to the canvas, then upload your overlay to start processing.

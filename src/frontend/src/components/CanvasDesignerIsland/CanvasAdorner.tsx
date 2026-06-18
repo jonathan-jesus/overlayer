@@ -156,6 +156,7 @@ interface CanvasAdornerProps {
   onEditingChange: (id: string | null) => void;
   dispatch: React.Dispatch<CanvasAction>;
   keepProportions: boolean;
+  onBackgroundPointerDown?: (e: React.PointerEvent<HTMLDivElement>) => void;
 }
 
 export default function CanvasAdorner({
@@ -168,6 +169,7 @@ export default function CanvasAdorner({
   onEditingChange,
   dispatch,
   keepProportions,
+  onBackgroundPointerDown,
 }: CanvasAdornerProps) {
   const adornerRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<DragState | null>(null);
@@ -257,6 +259,7 @@ export default function CanvasAdorner({
       adornerRef.current!.setPointerCapture(e.pointerId);
     } else {
       onSelect(null);
+      onBackgroundPointerDown?.(e);
     }
   }
 

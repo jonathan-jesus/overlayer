@@ -51,7 +51,7 @@
   font-weight: var(--font-semibold);
   letter-spacing: 0.07em;
   text-transform: uppercase;
-  color: var(--color-text-muted);
+  color: var(--color-text-secondary);
   padding: 0 var(--space-1);
 }
 
@@ -156,7 +156,7 @@
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   background: hsl(230 20% 7% / 0.8);
-  color: var(--color-text-muted);
+  color: var(--color-text-secondary);
   cursor: pointer;
   transition: color var(--transition-fast), border-color var(--transition-fast),
     background var(--transition-fast);

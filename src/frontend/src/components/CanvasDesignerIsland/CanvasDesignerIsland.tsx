@@ -147,6 +147,7 @@ export default function CanvasDesignerIsland({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [keepProportions, setKeepProportions] = useState(true);
   const [isShiftPressed, setIsShiftPressed] = useState(false);
+  const [showTransparencyGrid, setShowTransparencyGrid] = useState(true);
 
   const handleWidthInputChange = useCallback((val: string) => {
     setWidthInput(val);
@@ -585,7 +586,7 @@ export default function CanvasDesignerIsland({
               }}
             >
               <div
-                className={`canvas-designer__canvas-wrapper${isClipToCanvas ? ' canvas-designer__canvas-wrapper--clipped' : ''}`}
+                className={`canvas-designer__canvas-wrapper${isClipToCanvas ? ' canvas-designer__canvas-wrapper--clipped' : ''}${showTransparencyGrid ? ' canvas-designer__canvas-wrapper--transparent-grid' : ''}`}
               >
                 {isLocked && (
                   <div className="canvas-designer__lock-overlay" aria-hidden="true">
@@ -676,6 +677,8 @@ export default function CanvasDesignerIsland({
                 setIsClipToCanvas={setIsClipToCanvas}
                 keepCanvasProportions={keepCanvasProportions}
                 setKeepCanvasProportions={setKeepCanvasProportions}
+                showTransparencyGrid={showTransparencyGrid}
+                setShowTransparencyGrid={setShowTransparencyGrid}
               />
             )}
           </aside>

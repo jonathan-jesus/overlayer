@@ -69,6 +69,8 @@ const DEFAULT_PROPS = {
   setIsClipToCanvas: vi.fn(),
   keepCanvasProportions: false,
   setKeepCanvasProportions: vi.fn(),
+  showTransparencyGrid: true,
+  setShowTransparencyGrid: vi.fn(),
 };
 
 describe('PropertiesPanel', () => {

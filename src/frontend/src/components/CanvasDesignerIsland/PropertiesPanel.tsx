@@ -134,6 +134,8 @@ interface PropertiesPanelProps {
   setIsClipToCanvas: (val: boolean) => void;
   keepCanvasProportions: boolean;
   setKeepCanvasProportions: (locked: boolean) => void;
+  showTransparencyGrid: boolean;
+  setShowTransparencyGrid: (val: boolean) => void;
 }
 
 export default function PropertiesPanel({
@@ -152,6 +154,8 @@ export default function PropertiesPanel({
   setIsClipToCanvas,
   keepCanvasProportions,
   setKeepCanvasProportions,
+  showTransparencyGrid,
+  setShowTransparencyGrid,
 }: PropertiesPanelProps) {
   const replaceImageInputRef = useRef<HTMLInputElement>(null);
 
@@ -251,6 +255,19 @@ export default function PropertiesPanel({
                 onChange={(e) => setIsClipToCanvas(e.target.checked)}
               />
               Clip to canvas
+            </label>
+          </div>
+
+          <div className="props-panel__check-row">
+            <label className="props-panel__check-label" htmlFor="prop-show-transparency-grid">
+              <input
+                id="prop-show-transparency-grid"
+                type="checkbox"
+                className="props-panel__checkbox"
+                checked={showTransparencyGrid}
+                onChange={(e) => setShowTransparencyGrid(e.target.checked)}
+              />
+              Show transparency grid
             </label>
           </div>
         </section>

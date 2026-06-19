@@ -310,6 +310,18 @@
   pointer-events: none;
 }
 
+.canvas-designer__canvas-wrapper--transparent-grid {
+  background:
+    conic-gradient(
+      #c0c0c0 90deg,
+      #d0d0d0 90deg 180deg,
+      #c0c0c0 180deg 270deg,
+      #d0d0d0 270deg
+    );
+    
+  background-size: 18px 18px;
+}
+
 /* Locked state */
 .canvas-designer--locked .canvas-designer__canvas {
   opacity: 0.15;

@@ -7,6 +7,7 @@ import type { CanvasElement, Shadow } from './canvasReducer';
 import LayerPanel from './LayerPanel';
 import CanvasAdorner from './CanvasAdorner';
 import PropertiesPanel from './PropertiesPanel';
+import CanvasSettingsPanel from './CanvasSettingsPanel';
 import { TypeIcon, SquareIcon, ImageIcon, UploadIcon, SpinnerIcon, PropertiesIcon, ChevronRightIcon, ZoomOutIcon, ZoomInIcon, ZoomToFitIcon } from './icons';
 import './EditorLayout.css';
 import './CanvasDesignerIsland.css';
@@ -661,25 +662,30 @@ export default function CanvasDesignerIsland({
               )}
             </div>
             {isPropertiesOpen && (
-              <PropertiesPanel
-                selectedElement={selectedElement}
-                dispatch={dispatch}
-                keepProportions={keepProportions}
-                effectiveKeepProportions={effectiveKeepProportions}
-                onKeepProportionsChange={setKeepProportions}
-                widthInput={widthInput}
-                heightInput={heightInput}
-                setWidthInput={handleWidthInputChange}
-                setHeightInput={handleHeightInputChange}
-                commitDimension={commitDimension}
-                isDimensionValid={isDimensionValid}
-                isClipToCanvas={isClipToCanvas}
-                setIsClipToCanvas={setIsClipToCanvas}
-                keepCanvasProportions={keepCanvasProportions}
-                setKeepCanvasProportions={setKeepCanvasProportions}
-                showTransparencyGrid={showTransparencyGrid}
-                setShowTransparencyGrid={setShowTransparencyGrid}
-              />
+              selectedElement ? (
+                <PropertiesPanel
+                  selectedElement={selectedElement}
+                  dispatch={dispatch}
+                  keepProportions={keepProportions}
+                  effectiveKeepProportions={effectiveKeepProportions}
+                  onKeepProportionsChange={setKeepProportions}
+                />
+              ) : (
+                <CanvasSettingsPanel
+                  widthInput={widthInput}
+                  heightInput={heightInput}
+                  setWidthInput={handleWidthInputChange}
+                  setHeightInput={handleHeightInputChange}
+                  commitDimension={commitDimension}
+                  isDimensionValid={isDimensionValid}
+                  isClipToCanvas={isClipToCanvas}
+                  setIsClipToCanvas={setIsClipToCanvas}
+                  keepCanvasProportions={keepCanvasProportions}
+                  setKeepCanvasProportions={setKeepCanvasProportions}
+                  showTransparencyGrid={showTransparencyGrid}
+                  setShowTransparencyGrid={setShowTransparencyGrid}
+                />
+              )
             )}
           </aside>
         </div>

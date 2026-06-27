@@ -19,13 +19,16 @@ export default function JobStatusIsland({ jobId, getJobStatusFn }: JobStatusIsla
   const [status, setStatus] = useState<StatusState>({ kind: 'processing' });
 
   useEffect(() => {
+    const controller = new AbortController();
+
     const bridgeFn =
       getJobStatusFn ??
       (() => listJobs().then(({ jobs }) => jobs.find((j) => j.jobId === jobId)));
 
-    pollJobUntilDone(jobId, bridgeFn)
+    pollJobUntilDone(jobId, bridgeFn, { signal: controller.signal })
       .then((job) => setStatus({ kind: 'completed', job }))
       .catch((err) => {
+        if (err.name === 'AbortError') return;
         if (err instanceof TimeoutError) {
           setStatus({ kind: 'timeout' });
         } else if (err instanceof JobFailedError) {
@@ -34,6 +37,8 @@ export default function JobStatusIsland({ jobId, getJobStatusFn }: JobStatusIsla
           setStatus({ kind: 'failed', reason: 'An unexpected error occurred.' });
         }
       });
+
+    return () => controller.abort();
   }, [jobId, getJobStatusFn]);
 
   if (status.kind === 'processing') {

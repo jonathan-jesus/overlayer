@@ -17,6 +17,7 @@ export class TimeoutError extends Error {
 export interface PollOptions {
   intervalMs?: number;
   timeoutMs?: number;
+  signal?: AbortSignal;
 }
 
 const DEFAULT_INTERVAL_MS = 10_000;
@@ -32,6 +33,8 @@ export async function pollJobUntilDone(
   const deadline = Date.now() + timeoutMs;
 
   while (true) {
+    options?.signal?.throwIfAborted();
+
     const job = await getJobStatusFn();
 
     if (job?.status === 'COMPLETED') return job;
@@ -42,5 +45,7 @@ export async function pollJobUntilDone(
     }
 
     await new Promise<void>((resolve) => setTimeout(resolve, intervalMs));
+
+    options?.signal?.throwIfAborted();
   }
 }

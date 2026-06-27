@@ -58,4 +58,20 @@ describe('JobStatusIsland', () => {
       expect(screen.getByRole('alert')).toHaveTextContent(/timed out/i)
     );
   });
+
+  it('does not update state after unmount', async () => {
+    let resolveJob!: (job: Job) => void;
+    const getJobStatusFn = vi.fn(
+      () => new Promise<Job | undefined>((resolve) => { resolveJob = resolve; })
+    );
+
+    const { unmount } = render(<JobStatusIsland jobId="test-job-id" getJobStatusFn={getJobStatusFn} />);
+
+    unmount();
+    resolveJob(makeJob({ status: 'COMPLETED', downloadUrl: 'https://cdn.example.com/output.mp4' }));
+
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(screen.queryByRole('link', { name: /download/i })).not.toBeInTheDocument();
+  });
 });

@@ -79,4 +79,38 @@ describe('pollJobUntilDone', () => {
     await promise;
     expect(getJobStatusFn).toHaveBeenCalledTimes(2);
   });
+
+  it('rejects with AbortError when signal is aborted before the first fetch', async () => {
+    const controller = new AbortController();
+    controller.abort();
+
+    const getJobStatusFn = makeGetJobStatusFn([
+      { jobId: 'j1', status: 'PROCESSING', createdAt: '' },
+    ]);
+
+    const err = await pollJobUntilDone('j1', getJobStatusFn, { intervalMs: INTERVAL_MS, timeoutMs: TIMEOUT_MS, signal: controller.signal })
+      .catch((e: unknown) => e);
+
+    expect((err as Error).name).toBe('AbortError');
+    expect(getJobStatusFn).not.toHaveBeenCalled();
+  });
+
+  it('rejects with AbortError when signal is aborted while sleeping between polls', async () => {
+    const controller = new AbortController();
+    const getJobStatusFn = makeGetJobStatusFn([
+      { jobId: 'j1', status: 'PROCESSING', createdAt: '' },
+    ]);
+
+    const promise = pollJobUntilDone('j1', getJobStatusFn, { intervalMs: INTERVAL_MS, timeoutMs: TIMEOUT_MS, signal: controller.signal })
+      .catch((e: unknown) => e);
+
+    await vi.advanceTimersByTimeAsync(0);
+    expect(getJobStatusFn).toHaveBeenCalledTimes(1);
+
+    controller.abort();
+    await vi.advanceTimersByTimeAsync(INTERVAL_MS);
+
+    const err = await promise;
+    expect((err as Error).name).toBe('AbortError');
+  });
 });

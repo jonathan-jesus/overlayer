@@ -1,14 +1,17 @@
-import { useReducer, useEffect, useRef, useState, useCallback, useMemo } from 'react';
+import { useReducer, useRef, useState, useMemo } from 'react';
 import type { PresignedUpload } from '../../api/apiClient';
-import { uploadFile } from '../../upload/s3UploadService';
-import type { UploadState } from '../../upload/uploadTypes';
 import { canvasReducer } from './canvasReducer';
-import { drawElement, isValidDimension } from './canvasRenderer';
 import LayerPanel from './LayerPanel';
 import CanvasAdorner from './CanvasAdorner';
 import PropertiesPanel from './PropertiesPanel';
 import CanvasSettingsPanel from './CanvasSettingsPanel';
 import { TypeIcon, SquareIcon, ImageIcon, UploadIcon, SpinnerIcon, PropertiesIcon, ChevronRightIcon, ZoomOutIcon, ZoomInIcon, ZoomToFitIcon } from './icons';
+import { useShiftKey } from './useShiftKey';
+import { useCanvasConfig } from './useCanvasConfig';
+import { useZoom } from './useZoom';
+import { usePan } from './usePan';
+import { useUpload } from './useUpload';
+import { useCanvasRenderer, CANVAS_PADDING } from './useCanvasRenderer';
 import './EditorLayout.css';
 import './CanvasDesignerIsland.css';
 
@@ -17,274 +20,69 @@ interface CanvasDesignerIslandProps {
   onOverlayUploaded: () => void;
 }
 
-interface CanvasConfig {
-  width: number;
-  height: number;
-}
-
-const DEFAULT_CANVAS: CanvasConfig = { width: 1920, height: 1080 };
-const MIN_ZOOM = 0.1;
-const MAX_ZOOM = 2.0;
-const CANVAS_PADDING = 1000;
-
 export default function CanvasDesignerIsland({
   overlayPresignedUpload,
   onOverlayUploaded,
 }: CanvasDesignerIslandProps) {
   const [elements, dispatch] = useReducer(canvasReducer, []);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [uploadState, setUploadState] = useState<UploadState>('idle');
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [canvasConfig, setCanvasConfig] = useState<CanvasConfig>(DEFAULT_CANVAS);
-  const [widthInput, setWidthInput] = useState(String(DEFAULT_CANVAS.width));
-  const [heightInput, setHeightInput] = useState(String(DEFAULT_CANVAS.height));
-  const [keepCanvasProportions, setKeepCanvasProportions] = useState(false);
-  const [isLayersOpen, setIsLayersOpen] = useState(true);
-  const [isPropertiesOpen, setIsPropertiesOpen] = useState(true);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [keepProportions, setKeepProportions] = useState(true);
-  const [isShiftPressed, setIsShiftPressed] = useState(false);
+  const [isLayersOpen, setIsLayersOpen] = useState(true);
+  const [isPropertiesOpen, setIsPropertiesOpen] = useState(true);
+  const [isClipToCanvas, setIsClipToCanvas] = useState(true);
   const [showTransparencyGrid, setShowTransparencyGrid] = useState(true);
+  const [pan, setPan] = useState({ x: 0, y: 0 });
 
-  const handleWidthInputChange = useCallback((val: string) => {
-    setWidthInput(val);
-    if (keepCanvasProportions) {
-      const w = parseInt(val, 10);
-      if (!Number.isNaN(w) && w > 0 && canvasConfig.width > 0) {
-        const ratio = canvasConfig.height / canvasConfig.width;
-        setHeightInput(String(Math.round(w * ratio)));
-      }
-    }
-  }, [keepCanvasProportions, canvasConfig.width, canvasConfig.height]);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const imageCache = useRef<Map<string, HTMLImageElement>>(new Map());
+  const imageInputRef = useRef<HTMLInputElement>(null);
+  const viewportRef = useRef<HTMLDivElement>(null);
 
-  const handleHeightInputChange = useCallback((val: string) => {
-    setHeightInput(val);
-    if (keepCanvasProportions) {
-      const h = parseInt(val, 10);
-      if (!Number.isNaN(h) && h > 0 && canvasConfig.height > 0) {
-        const ratio = canvasConfig.width / canvasConfig.height;
-        setWidthInput(String(Math.round(h * ratio)));
-      }
-    }
-  }, [keepCanvasProportions, canvasConfig.width, canvasConfig.height]);
+  const isLocked = overlayPresignedUpload === null;
+  const isShiftPressed = useShiftKey();
+  const canvasConfigState = useCanvasConfig();
+  const { canvasConfig } = canvasConfigState;
+
+  const {
+    zoomScale,
+    zoomInput,
+    zoomToFit,
+    handleZoomOut,
+    handleZoomIn,
+    handleZoomInputChange,
+    handleZoomKeyDown,
+    onZoomInputFocus,
+    onZoomInputBlur,
+  } = useZoom(viewportRef, canvasConfig, setPan);
+
+  const { isPanning, startPanning, viewportPointerHandlers } = usePan(
+    viewportRef,
+    setPan,
+    zoomToFit,
+  );
+
+  const { uploadState, errorMessage, handleUpload } = useUpload(
+    overlayPresignedUpload,
+    canvasConfig,
+    elements,
+    imageCache,
+    onOverlayUploaded,
+  );
+
+  useCanvasRenderer(canvasRef, elements, isLocked, canvasConfig, editingId, imageCache);
+
+  function handleSelect(id: string | null) {
+    setSelectedId(id);
+    setEditingId(null);
+  }
+
+  const effectiveKeepProportions = isShiftPressed ? !keepProportions : keepProportions;
 
   const selectedElement = useMemo(
     () => elements.find((el) => el.id === selectedId) ?? null,
     [elements, selectedId],
   );
-
-  const [zoomScale, setZoomScale] = useState(1);
-  const [zoomInput, setZoomInput] = useState('100%');
-  const [isZoomInputFocused, setIsZoomInputFocused] = useState(false);
-  const [isClipToCanvas, setIsClipToCanvas] = useState(true);
-  const [pan, setPan] = useState({ x: 0, y: 0 });
-  const [isPanning, setIsPanning] = useState(false);
-  const [lastPanPoint, setLastPanPoint] = useState({ x: 0, y: 0 });
-  const viewportRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!isZoomInputFocused) {
-      setZoomInput(`${Math.round(zoomScale * 100)}%`);
-    }
-  }, [zoomScale, isZoomInputFocused]);
-
-  const zoomToFit = useCallback(() => {
-    if (viewportRef.current) {
-      const rect = viewportRef.current.getBoundingClientRect();
-      const marginX = 320;
-      const marginY = 40;
-      const fitW = (rect.width - marginX) / canvasConfig.width;
-      const fitH = (rect.height - marginY) / canvasConfig.height;
-      const initialZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, Math.min(fitW, fitH, 1)));
-      setZoomScale(initialZoom);
-      setPan({
-        x: (rect.width - canvasConfig.width * initialZoom) / 2,
-        y: (rect.height - canvasConfig.height * initialZoom) / 2,
-      });
-    }
-  }, [canvasConfig.width, canvasConfig.height]);
-
-  const applyZoomAtCenter = useCallback((zoomUpdater: (prev: number) => number) => {
-    setZoomScale((prev) => {
-      const newZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, zoomUpdater(prev)));
-      if (viewportRef.current) {
-        const rect = viewportRef.current.getBoundingClientRect();
-        const centerX = rect.width / 2;
-        const centerY = rect.height / 2;
-        setPan((prevPan) => {
-          const scaleRatio = newZoom / prev;
-          return {
-            x: centerX - (centerX - prevPan.x) * scaleRatio,
-            y: centerY - (centerY - prevPan.y) * scaleRatio,
-          };
-        });
-      }
-      return newZoom;
-    });
-  }, []);
-
-  const handleZoomOut = useCallback(() => {
-    applyZoomAtCenter((prev) => prev - 0.1);
-  }, [applyZoomAtCenter]);
-
-  const handleZoomIn = useCallback(() => {
-    applyZoomAtCenter((prev) => prev + 0.1);
-  }, [applyZoomAtCenter]);
-
-  const commitZoomInput = useCallback(() => {
-    const cleanVal = zoomInput.replace('%', '').trim();
-    const pct = parseFloat(cleanVal);
-    if (!Number.isNaN(pct)) {
-      applyZoomAtCenter(() => pct / 100);
-    } else {
-      setZoomInput(`${Math.round(zoomScale * 100)}%`);
-    }
-  }, [zoomInput, zoomScale, applyZoomAtCenter]);
-
-  const handleZoomKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      commitZoomInput();
-      e.currentTarget.blur();
-    }
-  }, [commitZoomInput]);
-
-  const handleZoomInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    setZoomInput(e.target.value);
-  }, []);
-
-  useEffect(() => {
-    const timer = setTimeout(zoomToFit, 10);
-    return () => clearTimeout(timer);
-  }, [zoomToFit]);
-
-  useEffect(() => {
-    const viewport = viewportRef.current;
-    if (!viewport) return;
-
-    const handleWheel = (e: WheelEvent) => {
-      e.preventDefault();
-      const zoomStep = 0.1;
-      const delta = e.deltaY < 0 ? zoomStep : -zoomStep;
-
-      setZoomScale((prev) => {
-        const newZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, prev + delta));
-        const rect = viewport.getBoundingClientRect();
-        const mouseX = e.clientX - rect.left;
-        const mouseY = e.clientY - rect.top;
-
-        setPan((prevPan) => {
-          const scaleRatio = newZoom / prev;
-          return {
-            x: mouseX - (mouseX - prevPan.x) * scaleRatio,
-            y: mouseY - (mouseY - prevPan.y) * scaleRatio,
-          };
-        });
-        return newZoom;
-      });
-    };
-
-    viewport.addEventListener('wheel', handleWheel, { passive: false });
-    return () => viewport.removeEventListener('wheel', handleWheel);
-  }, []);
-
-  function startPanning(e: React.PointerEvent) {
-    setIsPanning(true);
-    setLastPanPoint({ x: e.clientX, y: e.clientY });
-    if (e.currentTarget.setPointerCapture) {
-      e.currentTarget.setPointerCapture(e.pointerId);
-    }
-  }
-
-  function handleViewportPointerDown(e: React.PointerEvent<HTMLDivElement>) {
-    if (e.button === 1) {
-      zoomToFit();
-      e.preventDefault();
-      return;
-    }
-    if (e.button === 0 && e.target === viewportRef.current) {
-      startPanning(e);
-    }
-  }
-
-  function handleViewportPointerMove(e: React.PointerEvent<HTMLDivElement>) {
-    if (isPanning) {
-      const dx = e.clientX - lastPanPoint.x;
-      const dy = e.clientY - lastPanPoint.y;
-      setPan((p) => ({ x: p.x + dx, y: p.y + dy }));
-      setLastPanPoint({ x: e.clientX, y: e.clientY });
-    }
-  }
-
-  function handleViewportPointerUp(e: React.PointerEvent<HTMLDivElement>) {
-    if (isPanning) {
-      setIsPanning(false);
-      e.currentTarget.releasePointerCapture(e.pointerId);
-    }
-  }
-
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Shift') {
-        setIsShiftPressed(true);
-      }
-    };
-    const handleKeyUp = (e: KeyboardEvent) => {
-      if (e.key === 'Shift') {
-        setIsShiftPressed(false);
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    window.addEventListener('keyup', handleKeyUp);
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-      window.removeEventListener('keyup', handleKeyUp);
-    };
-  }, []);
-
-  const effectiveKeepProportions = isShiftPressed ? !keepProportions : keepProportions;
-
-  useEffect(() => {
-    setEditingId(null);
-  }, [selectedId]);
-
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const imageCache = useRef<Map<string, HTMLImageElement>>(new Map());
-  const imageInputRef = useRef<HTMLInputElement>(null);
-  const latestDrawRef = useRef<() => void>(() => { });
-
-  const isLocked = overlayPresignedUpload === null;
-
-  useEffect(() => {
-    if (isLocked) return;
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    function draw() {
-      ctx!.clearRect(0, 0, canvasConfig.width + CANVAS_PADDING * 2, canvasConfig.height + CANVAS_PADDING * 2);
-      ctx!.save();
-      ctx!.translate(CANVAS_PADDING, CANVAS_PADDING);
-      for (const el of elements) {
-        if (el.id === editingId || el.visible === false) continue;
-        drawElement(ctx!, el, imageCache.current, () => latestDrawRef.current());
-      }
-      ctx!.restore();
-    }
-
-    latestDrawRef.current = draw;
-    draw();
-  }, [elements, isLocked, canvasConfig, editingId]);
-
-  const pendingW = parseInt(widthInput, 10);
-  const pendingH = parseInt(heightInput, 10);
-  const isDimensionValid = isValidDimension(pendingW, pendingH);
-
-  function commitDimension(): void {
-    if (isValidDimension(pendingW, pendingH)) {
-      setCanvasConfig({ width: pendingW, height: pendingH });
-    }
-  }
 
   function handleImageFileChange(e: React.ChangeEvent<HTMLInputElement>): void {
     const file = e.target.files?.[0];
@@ -300,52 +98,13 @@ export default function CanvasDesignerIsland({
           width: img.naturalWidth,
           height: img.naturalHeight,
           x: canvasConfig.width / 2 - img.naturalWidth / 2,
-          y: canvasConfig.height / 2 - img.naturalHeight / 2
+          y: canvasConfig.height / 2 - img.naturalHeight / 2,
         });
       };
       img.src = src;
     };
     reader.readAsDataURL(file);
     e.target.value = '';
-  }
-
-  async function handleUpload(): Promise<void> {
-    if (!overlayPresignedUpload) return;
-    setUploadState('uploading');
-    setErrorMessage(null);
-
-    const exportCanvas = document.createElement('canvas');
-    exportCanvas.width = canvasConfig.width;
-    exportCanvas.height = canvasConfig.height;
-    const exportCtx = exportCanvas.getContext('2d');
-
-    if (!exportCtx) {
-      setErrorMessage('Upload failed. Could not render canvas.');
-      setUploadState('error');
-      return;
-    }
-
-    for (const el of elements) {
-      if (el.visible === false) continue;
-      drawElement(exportCtx, el, imageCache.current, () => { });
-    }
-
-    exportCanvas.toBlob(async (blob) => {
-      if (!blob) {
-        setErrorMessage('Upload failed. Could not render canvas.');
-        setUploadState('error');
-        return;
-      }
-      try {
-        const file = new File([blob], 'overlay.png', { type: 'image/png' });
-        await uploadFile(overlayPresignedUpload, file);
-        setUploadState('done');
-        onOverlayUploaded();
-      } catch {
-        setErrorMessage('Upload failed. Please try again.');
-        setUploadState('error');
-      }
-    }, 'image/png');
   }
 
   return (
@@ -409,11 +168,8 @@ export default function CanvasDesignerIsland({
             className="canvas-designer__zoom-value"
             value={zoomInput}
             onChange={handleZoomInputChange}
-            onFocus={() => setIsZoomInputFocused(true)}
-            onBlur={() => {
-              setIsZoomInputFocused(false);
-              commitZoomInput();
-            }}
+            onFocus={onZoomInputFocus}
+            onBlur={onZoomInputBlur}
             onKeyDown={handleZoomKeyDown}
             aria-label="Current zoom level"
           />
@@ -459,7 +215,7 @@ export default function CanvasDesignerIsland({
           <LayerPanel
             elements={elements}
             selectedId={selectedId}
-            onSelect={setSelectedId}
+            onSelect={handleSelect}
             dispatch={dispatch}
             isOpen={isLayersOpen}
             onToggle={() => setIsLayersOpen(!isLayersOpen)}
@@ -470,9 +226,7 @@ export default function CanvasDesignerIsland({
           <div
             ref={viewportRef}
             className={`canvas-designer__viewport${isPanning ? ' canvas-designer__viewport--panning' : ''}`}
-            onPointerDown={handleViewportPointerDown}
-            onPointerMove={handleViewportPointerMove}
-            onPointerUp={handleViewportPointerUp}
+            {...viewportPointerHandlers}
           >
             <div
               className="canvas-designer__pan-container"
@@ -511,7 +265,7 @@ export default function CanvasDesignerIsland({
                     selectedId={selectedId}
                     canvasWidth={canvasConfig.width}
                     canvasHeight={canvasConfig.height}
-                    onSelect={setSelectedId}
+                    onSelect={handleSelect}
                     editingId={editingId}
                     onEditingChange={setEditingId}
                     dispatch={dispatch}
@@ -568,16 +322,16 @@ export default function CanvasDesignerIsland({
                 />
               ) : (
                 <CanvasSettingsPanel
-                  widthInput={widthInput}
-                  heightInput={heightInput}
-                  setWidthInput={handleWidthInputChange}
-                  setHeightInput={handleHeightInputChange}
-                  commitDimension={commitDimension}
-                  isDimensionValid={isDimensionValid}
+                  widthInput={canvasConfigState.widthInput}
+                  heightInput={canvasConfigState.heightInput}
+                  setWidthInput={canvasConfigState.handleWidthInputChange}
+                  setHeightInput={canvasConfigState.handleHeightInputChange}
+                  commitDimension={canvasConfigState.commitDimension}
+                  isDimensionValid={canvasConfigState.isDimensionValid}
                   isClipToCanvas={isClipToCanvas}
                   setIsClipToCanvas={setIsClipToCanvas}
-                  keepCanvasProportions={keepCanvasProportions}
-                  setKeepCanvasProportions={setKeepCanvasProportions}
+                  keepCanvasProportions={canvasConfigState.keepCanvasProportions}
+                  setKeepCanvasProportions={canvasConfigState.setKeepCanvasProportions}
                   showTransparencyGrid={showTransparencyGrid}
                   setShowTransparencyGrid={setShowTransparencyGrid}
                 />

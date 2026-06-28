@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import type { PresignedUpload } from '../../api/apiClient';
 import UploaderIsland from '../UploaderIsland/UploaderIsland';
 import CanvasDesignerIsland from '../CanvasDesignerIsland/CanvasDesignerIsland';
@@ -12,6 +12,11 @@ type AppState =
 
 export default function AppIsland() {
   const [appState, setAppState] = useState<AppState>({ stage: 'upload' });
+  const appRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (appRef.current) appRef.current.dataset.hydrated = 'true';
+  }, []);
 
   function handleVideoUploaded(jobId: string, overlayPresignedUpload: PresignedUpload) {
     setAppState({ stage: 'design', jobId, overlayPresignedUpload });
@@ -31,7 +36,7 @@ export default function AppIsland() {
     appState.stage === 'design' ? appState.overlayPresignedUpload : null;
 
   return (
-    <div className="app">
+    <div className="app" ref={appRef}>
       <header className="app__hero">
         <h1 className="app__title gradient-text">Overlayer</h1>
         <p className="app__tagline">Seamlessly drop graphics and text straight onto your videos.</p>

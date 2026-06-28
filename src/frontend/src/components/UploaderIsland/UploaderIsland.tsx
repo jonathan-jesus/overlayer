@@ -36,8 +36,7 @@ export default function UploaderIsland({ onVideoUploaded, onComplete }: Uploader
     setErrorMessage(null);
 
     try {
-      const jobId = crypto.randomUUID();
-      const { videoUpload, overlayUpload } = await requestUploadUrls(jobId);
+      const { jobId, videoUpload, overlayUpload } = await requestUploadUrls(crypto.randomUUID());
 
       await uploadFile(videoUpload, video);
 
@@ -75,6 +74,7 @@ export default function UploaderIsland({ onVideoUploaded, onComplete }: Uploader
               accept="video/*"
               className="uploader__input"
               onChange={(e) => setHasVideo(!!e.target.files?.[0])}
+              onInput={(e) => setHasVideo(!!(e.target as HTMLInputElement).files?.[0])}
               disabled={uiState === 'uploading'}
             />
           </div>
@@ -88,7 +88,7 @@ export default function UploaderIsland({ onVideoUploaded, onComplete }: Uploader
               id="uploader-overlay"
               ref={overlayInputRef}
               type="file"
-              accept="image/png,image/jpeg,image/*"
+              accept="image/*"
               className="uploader__input"
               disabled={uiState === 'uploading'}
             />

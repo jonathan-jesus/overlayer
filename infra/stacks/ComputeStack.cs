@@ -478,12 +478,6 @@ public sealed class ComputeStack : Stack
         {
             FunctionName = lambda.Name,
             AuthorizationType = "NONE",
-            Cors = new FunctionUrlCorsArgs
-            {
-                AllowOrigins = ["*"],
-                AllowMethods = ["*"],
-                AllowHeaders = ["*"],
-            },
         });
 
         FunctionUrl = urlResource.FunctionUrlResult;

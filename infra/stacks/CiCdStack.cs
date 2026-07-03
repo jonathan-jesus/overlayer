@@ -27,7 +27,9 @@ public sealed class CiCdStack
         Input<string> workerTaskRoleArn,
         Input<string> lambdaArn,
         Input<string> devServiceArn,
-        Input<string> prodServiceArn)
+        Input<string> prodServiceArn,
+        Input<string> frontendBucketArn,
+        Input<string> distributionArn)
     {
         var oidcProvider = Output.Create(GetOpenIdConnectProvider.InvokeAsync(new GetOpenIdConnectProviderArgs
         {
@@ -61,10 +63,12 @@ public sealed class CiCdStack
                 workerTaskRoleArn,
                 lambdaArn,
                 artifactBucketArnInput,
-                serviceArn
+                serviceArn,
+                frontendBucketArn,
+                distributionArn
             ).Apply(t =>
             {
-                var (ecrArn, taskRoleArn, fnArn, bucketArn, svcArn) = t;
+                var (ecrArn, taskRoleArn, fnArn, bucketArn, svcArn, frontBucketArn, distArn) = t;
 
                 return JsonSerializer.Serialize(new
                 {
@@ -134,6 +138,20 @@ public sealed class CiCdStack
                             Effect = "Allow",
                             Action = new[] { "s3:PutObject", "s3:GetObject" },
                             Resource = $"{bucketArn}/*",
+                        },
+                        new
+                        {
+                            Sid = "S3FrontendSync",
+                            Effect = "Allow",
+                            Action = new[] { "s3:PutObject", "s3:DeleteObject", "s3:ListBucket" },
+                            Resource = new[] { frontBucketArn, $"{frontBucketArn}/*" },
+                        },
+                        new
+                        {
+                            Sid = "CloudFrontInvalidate",
+                            Effect = "Allow",
+                            Action = new[] { "cloudfront:CreateInvalidation" },
+                            Resource = distArn,
                         },
                     },
                 });

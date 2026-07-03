@@ -6,4 +6,5 @@ config:
   overlayer:ffmpegMaxBitrate: "6500"
   overlayer:alertEmail: sousjonathan@gmail.com
   overlayer:corsAllowedOrigin: "http://localhost:*"
+  overlayer:acmCertificateArn: "arn:aws:acm:us-east-1:459632521199:certificate/a0edcf30-651a-4784-8097-7e23ec720a56"
 encryptionsalt: v1:xF4DzkwcJu4=:v1:X+Ae5O+HydhxHIgi:h6NIFuY7PgAnxHwKRHHhXnpxEWhLLQ==

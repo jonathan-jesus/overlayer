@@ -27,11 +27,16 @@ public sealed class ComputeStack : Stack
     [Output] public Output<string> QueueUrl { get; private set; }
     [Output] public Output<string> FunctionUrl { get; private set; }
     [Output] public Output<string>? DeployRoleArn { get; private set; }
+    [Output] public Output<string> DistributionDomainName { get; private set; }
+    [Output] public Output<string> DistributionId { get; private set; }
+    [Output] public Output<string> FrontendBucketName { get; private set; }
     public ComputeStack()
     {
         var stackName = Deployment.Instance.StackName;
         var config = new Config("overlayer");
         var region = new Config("aws").Require("region");
+
+        var acmCertificateArn = config.Get("acmCertificateArn");
 
         var ffmpegMinBitrate = config.Get("ffmpegMinBitrate") ?? "3000";
         var ffmpegMaxBitrate = config.Get("ffmpegMaxBitrate") ?? "6500";
@@ -510,6 +515,8 @@ public sealed class ComputeStack : Stack
         });
         #endregion
 
+        var frontend = new FrontendResources(stackName, commonTags, urlResource.FunctionUrlResult, acmCertificateArn);
+
         _ = new ObservabilityResources(
             stackName, config, commonTags,
             dlqName: foundational.DlqName,
@@ -534,9 +541,14 @@ public sealed class ComputeStack : Stack
             workerTaskRoleArn: workerTaskRole.Arn,
             lambdaArn: lambda.Arn,
             devServiceArn: workerServiceArn,
-            prodServiceArn: workerServiceArn);
+            prodServiceArn: workerServiceArn,
+            frontendBucketArn: frontend.FrontendBucketArn,
+            distributionArn: frontend.DistributionArn);
 
         DeployRoleArn = ciCd.DeployRoleArn;
+        DistributionDomainName = frontend.DistributionDomainName;
+        DistributionId = frontend.DistributionId;
+        FrontendBucketName = frontend.FrontendBucketName;
 
     }
 }

@@ -21,6 +21,7 @@ jobs:
       CLUSTER: overlayer-dev
       SERVICE: overlayer-worker-dev
       ARTIFACT_BUCKET: overlayer-lambda-artifacts-dev
+      FRONTEND_BUCKET: overlayer-frontend-dev
 
     steps:
       - uses: actions/checkout@v4
@@ -98,6 +99,29 @@ jobs:
             --cluster ${{ env.CLUSTER }} \
             --services ${{ env.SERVICE }}
 
+      # ── Frontend: build, sync S3, invalidate CloudFront ──────────────
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install frontend dependencies
+        run: npm ci
+        working-directory: src/frontend
+
+      - name: Build frontend
+        run: npm run build
+        working-directory: src/frontend
+
+      - name: Sync frontend to S3
+        run: |
+          aws s3 sync src/frontend/dist s3://${{ env.FRONTEND_BUCKET }} --delete
+
+      - name: Invalidate CloudFront cache
+        run: |
+          aws cloudfront create-invalidation \
+            --distribution-id ${{ secrets.CF_DISTRIBUTION_ID_DEV }} \
+            --paths "/*"
+
   deploy-prod:
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
@@ -112,6 +136,7 @@ jobs:
       CLUSTER: overlayer-prod
       SERVICE: overlayer-worker-prod
       ARTIFACT_BUCKET: overlayer-lambda-artifacts-prod
+      FRONTEND_BUCKET: overlayer-frontend-prod
 
     steps:
       - uses: actions/checkout@v4
@@ -188,3 +213,26 @@ jobs:
           aws ecs wait services-stable \
             --cluster ${{ env.CLUSTER }} \
             --services ${{ env.SERVICE }}
+
+      # ── Frontend: build, sync S3, invalidate CloudFront ──────────────
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install frontend dependencies
+        run: npm ci
+        working-directory: src/frontend
+
+      - name: Build frontend
+        run: npm run build
+        working-directory: src/frontend
+
+      - name: Sync frontend to S3
+        run: |
+          aws s3 sync src/frontend/dist s3://${{ env.FRONTEND_BUCKET }} --delete
+
+      - name: Invalidate CloudFront cache
+        run: |
+          aws cloudfront create-invalidation \
+            --distribution-id ${{ secrets.CF_DISTRIBUTION_ID_PROD }} \
+            --paths "/*"

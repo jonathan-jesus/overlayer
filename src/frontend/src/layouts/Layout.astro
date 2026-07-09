@@ -35,6 +35,31 @@ const {
     </script>
   </head>
   <body>
-    <slot />
+    <main class="main-content">
+      <slot />
+    </main>
+    <footer class="layout-footer">
+      <p>🛡️ <strong>Privacy & Content Notice:</strong> No personal data is collected. Please ensure you only upload content you have the right to use. Your content is strictly used for processing and is permanently deleted within a week.</p>
+    </footer>
+    <style>
+      body {
+        display: flex;
+        flex-direction: column;
+      }
+      .main-content {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+      }
+      .layout-footer {
+        text-align: center;
+        padding: 2rem 1rem;
+        font-size: var(--text-xs);
+        color: var(--color-text-muted);
+        max-width: var(--max-width-narrow);
+        margin: 0 auto;
+        line-height: var(--leading-relaxed);
+      }
+    </style>
   </body>
 </html>

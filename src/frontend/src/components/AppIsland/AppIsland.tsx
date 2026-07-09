@@ -37,6 +37,10 @@ export default function AppIsland() {
 
   return (
     <div className="app" ref={appRef}>
+      <div className="showcase-toast glass">
+        <p>👋 <strong>Welcome to Overlayer!</strong> Just a quick heads-up: this is a showcase project, so our servers take a quick nap when not in use. If it takes a minute or two to wake up on your first try, thanks for your patience! We&apos;ve enabled anonymous access so you can jump right in.</p>
+      </div>
+
       <header className="app__hero">
         <h1 className="app__title gradient-text">Overlayer</h1>
         <p className="app__tagline">Seamlessly drop graphics and text straight onto your videos.</p>

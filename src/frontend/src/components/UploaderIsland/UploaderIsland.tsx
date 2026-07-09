@@ -107,6 +107,10 @@ export default function UploaderIsland({ onVideoUploaded, onComplete }: Uploader
           </div>
         )}
 
+        <div className="uploader__hint">
+          🛡️ Your content is safe and deleted weekly.
+        </div>
+
         <button
           type="submit"
           className="uploader__submit"

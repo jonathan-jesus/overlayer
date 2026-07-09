@@ -5,6 +5,19 @@
   min-height: 100dvh;
 }
 
+/* Showcase Toast */
+.showcase-toast {
+  position: sticky;
+  top: var(--space-4);
+  max-width: 950px;
+  margin: var(--space-4) auto 0;
+  padding: var(--space-4) var(--space-6);
+  font-size: var(--text-sm);
+  line-height: var(--leading-relaxed);
+  text-align: left;
+  z-index: 50;
+}
+
 /* Hero */
 .app__hero {
   display: flex;

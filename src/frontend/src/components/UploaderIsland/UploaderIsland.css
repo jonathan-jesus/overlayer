@@ -144,3 +144,10 @@
   opacity: 0.35;
   cursor: not-allowed;
 }
+
+.uploader__hint {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  text-align: right;
+  margin-top: calc(var(--space-2) * -1);
+}

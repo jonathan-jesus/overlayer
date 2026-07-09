@@ -9,8 +9,9 @@
 .showcase-toast {
   position: sticky;
   top: var(--space-4);
-  max-width: 950px;
-  margin: var(--space-4) auto 0;
+  width: 100%;
+  max-width: var(--max-width-content);
+  margin: 0 0 var(--space-6) 0;
   padding: var(--space-4) var(--space-6);
   font-size: var(--text-sm);
   line-height: var(--leading-relaxed);
@@ -21,11 +22,29 @@
 /* Hero */
 .app__hero {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  justify-content: space-between;
   align-items: center;
-  text-align: center;
-  padding: var(--space-20) var(--space-6) var(--space-12);
+  text-align: left;
+  padding: var(--space-12) var(--space-6) var(--space-12);
   position: relative;
+  width: 100%;
+  max-width: var(--max-width-content);
+  margin: 0 auto;
+  gap: var(--space-8);
+}
+
+.app__hero-left {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  flex: 1;
+}
+
+.app__hero-right {
+  flex: 1;
+  display: flex;
+  justify-content: flex-end;
 }
 
 .app__hero::before {
@@ -46,7 +65,7 @@
 
 .app__title-container {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
   gap: var(--space-5);
   margin-bottom: var(--space-4);
@@ -189,7 +208,18 @@
   }
 
   .app__hero {
-    padding: var(--space-12) var(--space-4) var(--space-8);
+    flex-direction: column;
+    text-align: center;
+    padding: var(--space-8) var(--space-4) var(--space-8);
+    gap: var(--space-6);
+  }
+
+  .app__hero-left {
+    align-items: center;
+  }
+
+  .app__title-container {
+    flex-direction: column;
   }
 
   .app__content {

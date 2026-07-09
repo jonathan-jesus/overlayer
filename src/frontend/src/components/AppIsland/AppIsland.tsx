@@ -42,7 +42,10 @@ export default function AppIsland() {
       </div>
 
       <header className="app__hero">
-        <h1 className="app__title gradient-text">Overlayer</h1>
+        <div className="app__title-container">
+          <div className="app__icon" aria-hidden="true"></div>
+          <h1 className="app__title gradient-text">Overlayer</h1>
+        </div>
         <p className="app__tagline">Seamlessly drop graphics and text straight onto your videos.</p>
       </header>
 

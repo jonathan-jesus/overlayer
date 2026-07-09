@@ -1,14 +1,14 @@
 import { useState, useEffect, useRef } from 'react';
 import type { PresignedUpload } from '../../api/apiClient';
+import { requestUploadUrls } from '../../api/apiClient';
 import UploaderIsland from '../UploaderIsland/UploaderIsland';
 import CanvasDesignerIsland from '../CanvasDesignerIsland/CanvasDesignerIsland';
-import JobStatusIsland from '../JobStatusIsland/JobStatusIsland';
+import JobListingPanel from '../JobListingPanel/JobListingPanel';
 import './AppIsland.css';
 
 type AppState =
   | { stage: 'upload' }
-  | { stage: 'design'; jobId: string; overlayPresignedUpload: PresignedUpload }
-  | { stage: 'processing'; jobId: string };
+  | { stage: 'design'; jobId: string; overlayPresignedUpload: PresignedUpload };
 
 export default function AppIsland() {
   const [appState, setAppState] = useState<AppState>({ stage: 'upload' });
@@ -22,13 +22,20 @@ export default function AppIsland() {
     setAppState({ stage: 'design', jobId, overlayPresignedUpload });
   }
 
-  function handleComplete(jobId: string) {
-    setAppState({ stage: 'processing', jobId });
+  function handleComplete() {
+    setAppState({ stage: 'upload' });
   }
 
   function handleOverlayUploaded() {
-    if (appState.stage === 'design') {
-      setAppState({ stage: 'processing', jobId: appState.jobId });
+    setAppState({ stage: 'upload' });
+  }
+
+  async function handleResumeDesign(jobId: string) {
+    try {
+      const response = await requestUploadUrls(jobId);
+      setAppState({ stage: 'design', jobId, overlayPresignedUpload: response.overlayUpload });
+    } catch (e) {
+      console.error('Failed to resume design:', e);
     }
   }
 
@@ -64,25 +71,18 @@ export default function AppIsland() {
           </section>
         )}
 
-        {appState.stage === 'design' && (
-          <>
-            <section className="app__section app__section--wide" aria-label="Design overlay">
-              <h2 className="app__section-title">Design your overlay</h2>
-              <p className="app__section-description">
-                Add text elements to the canvas, then upload your overlay to start processing.
-              </p>
-              <CanvasDesignerIsland
-                overlayPresignedUpload={overlayPresignedUpload}
-                onOverlayUploaded={handleOverlayUploaded}
-              />
-            </section>
-          </>
-        )}
+        {appState.stage === 'upload' && <JobListingPanel onActionDesign={handleResumeDesign} />}
 
-        {appState.stage === 'processing' && (
-          <section className="app__section" aria-label="Processing status">
-            <h2 className="app__section-title">Processing your video</h2>
-            <JobStatusIsland jobId={appState.jobId} />
+        {appState.stage === 'design' && (
+          <section className="app__section app__section--wide" aria-label="Design overlay">
+            <h2 className="app__section-title">Design your overlay</h2>
+            <p className="app__section-description">
+              Add text elements to the canvas, then upload your overlay to start processing.
+            </p>
+            <CanvasDesignerIsland
+              overlayPresignedUpload={overlayPresignedUpload}
+              onOverlayUploaded={handleOverlayUploaded}
+            />
           </section>
         )}
       </main>

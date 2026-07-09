@@ -28,6 +28,11 @@ const {
       rel="stylesheet"
     />
     <title>{title} | Overlayer</title>
+    <script is:inline>
+      if (window.location.pathname !== '/') {
+        window.history.replaceState(null, '', '/');
+      }
+    </script>
   </head>
   <body>
     <slot />

@@ -4,6 +4,36 @@
   gap: var(--space-4);
 }
 
+/* Alert */
+.canvas-designer__alert {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: hsl(210 80% 60% / 0.1);
+  border: 1px solid hsl(210 80% 60% / 0.3);
+  border-radius: var(--radius-md);
+  color: var(--color-text-primary);
+  font-size: var(--text-sm);
+  line-height: 1.4;
+}
+
+.canvas-designer__alert-close {
+  background: transparent;
+  border: none;
+  color: var(--color-text-muted);
+  font-size: 1.25rem;
+  line-height: 1;
+  padding: 0 var(--space-1);
+  cursor: pointer;
+  transition: color var(--transition-fast);
+}
+
+.canvas-designer__alert-close:hover {
+  color: var(--color-text-primary);
+}
+
 /* Toolbar */
 .canvas-designer__toolbar {
   display: flex;

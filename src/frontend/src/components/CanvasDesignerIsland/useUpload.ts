@@ -43,22 +43,26 @@ export function useUpload(
       drawElement(exportCtx, el, imageCache.current, () => { });
     }
 
-    exportCanvas.toBlob(async (blob) => {
-      if (!blob) {
-        setErrorMessage('Upload failed. Could not render canvas.');
-        setUploadState('error');
-        return;
-      }
-      try {
-        const file = new File([blob], 'overlay.png', { type: 'image/png' });
-        await uploadFile(overlayPresignedUpload, file);
-        setUploadState('done');
-        onOverlayUploaded();
-      } catch {
-        setErrorMessage('Upload failed. Please try again.');
-        setUploadState('error');
-      }
-    }, 'image/png');
+    await new Promise<void>((resolve) => {
+      exportCanvas.toBlob(async (blob) => {
+        if (!blob) {
+          setErrorMessage('Upload failed. Could not render canvas.');
+          setUploadState('error');
+          resolve();
+          return;
+        }
+        try {
+          const file = new File([blob], 'overlay.png', { type: 'image/png' });
+          await uploadFile(overlayPresignedUpload, file);
+          setUploadState('done');
+          onOverlayUploaded();
+        } catch {
+          setErrorMessage('Upload failed. Please try again.');
+          setUploadState('error');
+        }
+        resolve();
+      }, 'image/png');
+    });
   }
 
   return { uploadState, errorMessage, handleUpload };

@@ -22,10 +22,6 @@ export default function AppIsland() {
     setAppState({ stage: 'design', jobId, overlayPresignedUpload });
   }
 
-  function handleComplete() {
-    setAppState({ stage: 'upload' });
-  }
-
   function handleOverlayUploaded() {
     setAppState({ stage: 'upload' });
   }
@@ -62,11 +58,11 @@ export default function AppIsland() {
 
       <main className="app__content">
         {appState.stage === 'upload' && (
-          <section className="app__section" aria-label="Upload files">
-            <h2 className="app__section-title">Upload your files</h2>
+          <section className="app__section" aria-label="Create job">
+            <h2 className="app__section-title">New job</h2>
             <UploaderIsland
+              mode="video"
               onVideoUploaded={handleVideoUploaded}
-              onComplete={handleComplete}
             />
           </section>
         )}
@@ -75,14 +71,28 @@ export default function AppIsland() {
 
         {appState.stage === 'design' && (
           <section className="app__section app__section--wide" aria-label="Design overlay">
-            <h2 className="app__section-title">Design your overlay</h2>
+            <h2 className="app__section-title">Design your overlay or upload a pre-made one</h2>
             <p className="app__section-description">
-              Add text elements to the canvas, then upload your overlay to start processing.
+              Upload an existing PNG or add text elements to the canvas to start processing.
             </p>
-            <CanvasDesignerIsland
-              overlayPresignedUpload={overlayPresignedUpload}
-              onOverlayUploaded={handleOverlayUploaded}
-            />
+            <div className="app__design-split" style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+              <UploaderIsland
+                mode="overlay"
+                jobId={appState.jobId}
+                overlayPresignedUpload={overlayPresignedUpload ?? undefined}
+                onComplete={handleOverlayUploaded}
+              />
+              <CanvasDesignerIsland
+                overlayPresignedUpload={overlayPresignedUpload}
+                onOverlayUploaded={handleOverlayUploaded}
+              />
+              <button
+                onClick={() => setAppState({ stage: 'upload' })}
+                className="app__cancel-button"
+              >
+                Cancel
+              </button>
+            </div>
           </section>
         )}
       </main>

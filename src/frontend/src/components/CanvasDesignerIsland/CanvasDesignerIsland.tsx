@@ -24,6 +24,7 @@ export default function CanvasDesignerIsland({
   overlayPresignedUpload,
   onOverlayUploaded,
 }: CanvasDesignerIslandProps) {
+  const [isAlertVisible, setIsAlertVisible] = useState(true);
   const [elements, dispatch] = useReducer(canvasReducer, []);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -113,6 +114,19 @@ export default function CanvasDesignerIsland({
       aria-label="Canvas designer"
       aria-disabled={isLocked ? 'true' : undefined}
     >
+      {isAlertVisible && !isLocked && (
+        <div className="canvas-designer__alert" role="alert">
+          <span>💡 <strong>Tip:</strong> To prevent cropping or misalignment, ensure your canvas size matches your video resolution. The overlay is not automatically scaled.</span>
+          <button
+            type="button"
+            className="canvas-designer__alert-close"
+            onClick={() => setIsAlertVisible(false)}
+            aria-label="Close alert"
+          >
+            ×
+          </button>
+        </div>
+      )}
       <div className="canvas-designer__toolbar">
         <div className="canvas-designer__creation-tools">
           <button
@@ -199,7 +213,7 @@ export default function CanvasDesignerIsland({
             disabled={uploadState === 'uploading' || uploadState === 'done'}
           >
             {uploadState === 'uploading' ? <SpinnerIcon /> : <UploadIcon />}
-            <span>{uploadState === 'uploading' ? 'Uploading…' : 'Upload'}</span>
+            <span>{uploadState === 'uploading' ? 'Submitting…' : 'Save and submit'}</span>
           </button>
         )}
       </div>

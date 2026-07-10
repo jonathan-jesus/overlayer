@@ -41,7 +41,7 @@ describe('UploaderIsland', () => {
   it('renders idle state with submit button disabled', () => {
     renderUploader();
 
-    expect(screen.getByRole('button', { name: /upload/i })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /create job/i })).toBeDisabled();
   });
 
   it('enables submit once a video file is selected', async () => {
@@ -51,7 +51,7 @@ describe('UploaderIsland', () => {
     const videoInput = screen.getByLabelText(/video/i);
     await user.upload(videoInput, makeVideoFile());
 
-    expect(screen.getByRole('button', { name: /upload/i })).toBeEnabled();
+    expect(screen.getByRole('button', { name: /create job/i })).toBeEnabled();
   });
 
   it('calls onVideoUploaded with jobId and overlayPresignedUpload when only video is uploaded', async () => {
@@ -59,7 +59,7 @@ describe('UploaderIsland', () => {
     renderUploader();
 
     await user.upload(screen.getByLabelText(/video/i), makeVideoFile());
-    await user.click(screen.getByRole('button', { name: /upload/i }));
+    await user.click(screen.getByRole('button', { name: /create job/i }));
 
     await waitFor(() => expect(onVideoUploaded).toHaveBeenCalledOnce());
 
@@ -71,14 +71,26 @@ describe('UploaderIsland', () => {
 
   it('calls onComplete (not onVideoUploaded) when both video and overlay are uploaded', async () => {
     const user = userEvent.setup();
-    renderUploader();
+    const { rerender } = renderUploader();
 
     await user.upload(screen.getByLabelText(/video/i), makeVideoFile());
-    await user.upload(screen.getByLabelText(/overlay/i), makeOverlayFile());
-    await user.click(screen.getByRole('button', { name: /upload/i }));
+    await user.click(screen.getByRole('button', { name: /create job/i }));
+    
+    rerender(
+      <UploaderIsland 
+        mode="overlay" 
+        jobId="test-job" 
+        overlayPresignedUpload={mockUploadUrlsResponse.overlayUpload} 
+        onVideoUploaded={onVideoUploaded} 
+        onComplete={onComplete} 
+      />
+    );
+
+    await user.upload(screen.getByLabelText(/overlay image/i), makeOverlayFile());
+    await user.click(screen.getByRole('button', { name: /upload image/i }));
 
     await waitFor(() => expect(onComplete).toHaveBeenCalledOnce());
-    expect(onVideoUploaded).not.toHaveBeenCalled();
+    expect(onVideoUploaded).toHaveBeenCalledOnce();
   });
 
   it('shows an error and does not upload when video exceeds maxFileSize', async () => {
@@ -87,7 +99,7 @@ describe('UploaderIsland', () => {
 
     const oversizedVideo = makeVideoFile(mockUploadUrlsResponse.videoUpload.maxFileSize + 1);
     await user.upload(screen.getByLabelText(/video/i), oversizedVideo);
-    await user.click(screen.getByRole('button', { name: /upload/i }));
+    await user.click(screen.getByRole('button', { name: /create job/i }));
 
     await waitFor(() =>
       expect(screen.getByRole('alert')).toHaveTextContent(/too large/i)
@@ -98,12 +110,24 @@ describe('UploaderIsland', () => {
 
   it('shows an error and does not upload when overlay exceeds maxFileSize', async () => {
     const user = userEvent.setup();
-    renderUploader();
+    const { rerender } = renderUploader();
 
     const oversizedOverlay = makeOverlayFile(mockUploadUrlsResponse.overlayUpload.maxFileSize + 1);
     await user.upload(screen.getByLabelText(/video/i), makeVideoFile());
-    await user.upload(screen.getByLabelText(/overlay/i), oversizedOverlay);
-    await user.click(screen.getByRole('button', { name: /upload/i }));
+    await user.click(screen.getByRole('button', { name: /create job/i }));
+    
+    rerender(
+      <UploaderIsland 
+        mode="overlay" 
+        jobId="test-job" 
+        overlayPresignedUpload={mockUploadUrlsResponse.overlayUpload} 
+        onVideoUploaded={onVideoUploaded} 
+        onComplete={onComplete} 
+      />
+    );
+
+    await user.upload(screen.getByLabelText(/overlay image/i), oversizedOverlay);
+    await user.click(screen.getByRole('button', { name: /upload image/i }));
 
     await waitFor(() =>
       expect(screen.getByRole('alert')).toHaveTextContent(/too large/i)
@@ -122,7 +146,7 @@ describe('UploaderIsland', () => {
     renderUploader();
 
     await user.upload(screen.getByLabelText(/video/i), makeVideoFile());
-    await user.click(screen.getByRole('button', { name: /upload/i }));
+    await user.click(screen.getByRole('button', { name: /create job/i }));
 
     await waitFor(() =>
       expect(screen.getByRole('alert')).toHaveTextContent(/upload failed/i)
@@ -138,7 +162,7 @@ describe('UploaderIsland', () => {
     renderUploader();
 
     await user.upload(screen.getByLabelText(/video/i), makeVideoFile());
-    await user.click(screen.getByRole('button', { name: /upload/i }));
+    await user.click(screen.getByRole('button', { name: /create job/i }));
 
     await waitFor(() =>
       expect(screen.getByRole('alert')).toHaveTextContent(/upload failed/i)

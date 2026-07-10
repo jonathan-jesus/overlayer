@@ -73,7 +73,7 @@ describe('CanvasDesignerIsland', () => {
         'aria-disabled',
         'true'
       );
-      expect(screen.queryByRole('button', { name: /upload/i })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /save and submit/i })).not.toBeInTheDocument();
     });
 
     it('renders the canvas when unlocked', () => {
@@ -307,7 +307,7 @@ describe('CanvasDesignerIsland', () => {
         />
       );
 
-      await user.click(screen.getByRole('button', { name: /upload/i }));
+      await user.click(screen.getByRole('button', { name: /save and submit/i }));
 
       await waitFor(() => expect(onOverlayUploaded).toHaveBeenCalledOnce());
     });
@@ -325,10 +325,10 @@ describe('CanvasDesignerIsland', () => {
         />
       );
 
-      await user.click(screen.getByRole('button', { name: /upload/i }));
+      await user.click(screen.getByRole('button', { name: /save and submit/i }));
 
       await waitFor(() =>
-        expect(screen.getByRole('alert')).toHaveTextContent(/upload failed/i)
+        expect(screen.getByText(/upload failed/i)).toBeInTheDocument()
       );
       expect(onOverlayUploaded).not.toHaveBeenCalled();
     });

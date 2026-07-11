@@ -2,7 +2,7 @@ import { useState, type RefObject, type Dispatch, type SetStateAction } from 're
 
 type PanState = { x: number; y: number };
 
-export interface ViewportPointerHandlers {
+interface ViewportPointerHandlers {
   onPointerDown: (e: React.PointerEvent<HTMLDivElement>) => void;
   onPointerMove: (e: React.PointerEvent<HTMLDivElement>) => void;
   onPointerUp: (e: React.PointerEvent<HTMLDivElement>) => void;

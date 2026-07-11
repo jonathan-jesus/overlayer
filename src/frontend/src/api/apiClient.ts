@@ -2,7 +2,7 @@ import { getSessionId } from '../session/session';
 
 export type JobStatus = 'MISSING_ASSETS' | 'PROCESSING' | 'COMPLETED' | 'FAILED';
 
-export interface PresignedUploadFields {
+interface PresignedUploadFields {
   key: string;
   contentType: string;
   policy: string;

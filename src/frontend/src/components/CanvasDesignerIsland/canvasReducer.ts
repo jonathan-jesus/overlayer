@@ -45,7 +45,7 @@ export interface ImageElement extends BaseElement {
 
 export type CanvasElement = TextElement | RectElement | ImageElement;
 
-export type ElementPatch<T> = T extends unknown ? Partial<Omit<T, 'id' | 'kind'>> : never;
+type ElementPatch<T> = T extends unknown ? Partial<Omit<T, 'id' | 'kind'>> : never;
 export type CanvasElementPatch = ElementPatch<CanvasElement>;
 
 export type CanvasAction =

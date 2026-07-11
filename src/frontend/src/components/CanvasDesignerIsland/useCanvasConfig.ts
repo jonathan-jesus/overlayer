@@ -6,7 +6,7 @@ export interface CanvasConfig {
   height: number;
 }
 
-export const DEFAULT_CANVAS: CanvasConfig = { width: 1920, height: 1080 };
+const DEFAULT_CANVAS: CanvasConfig = { width: 1920, height: 1080 };
 
 export interface UseCanvasConfigResult {
   canvasConfig: CanvasConfig;

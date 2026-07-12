@@ -26,7 +26,8 @@ public abstract class BaseIntegrationApiFactory : WebApplicationFactory<Program>
                 ["S3:Region"] = "us-east-2",
                 ["S3:ForcePathStyle"] = "true",
                 ["S3:AccessKey"] = "test",
-                ["S3:SecretKey"] = "test"
+                ["S3:SecretKey"] = "test",
+                ["CloudFront:OriginSecret"] = "test-secret"
             });
         });
     }

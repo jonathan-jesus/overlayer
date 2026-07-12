@@ -9,7 +9,7 @@ namespace Overlayer.Infra.Stacks;
 /// <summary>
 /// Provisions the frontend hosting infrastructure:
 /// - S3 bucket for Astro static assets
-/// - CloudFront distribution with two origins: S3 (OAC) and Lambda Function URL (proxy)
+/// - CloudFront distribution with two origins: S3 (OAC) and HTTP API (proxy)
 /// </summary>
 public sealed class FrontendResources
 {
@@ -22,7 +22,8 @@ public sealed class FrontendResources
     public FrontendResources(
         string stackName,
         InputMap<string> commonTags,
-        Input<string> lambdaFunctionUrl,
+        Input<string> apiOriginUrl,
+        Input<string> originSecret,
         string? acmCertificateArn)
     {
         #region S3 Bucket
@@ -92,14 +93,21 @@ public sealed class FrontendResources
                 new DistributionOriginArgs
                 {
                     OriginId = lambdaOriginId,
-                    // Remove "https://" and any trailing slash or path from the Function URL
-                    DomainName = lambdaFunctionUrl.Apply(url => new Uri(url).Host),
+                    DomainName = apiOriginUrl.Apply(url => new Uri(url).Host),
                     CustomOriginConfig = new DistributionOriginCustomOriginConfigArgs
                     {
                         HttpPort = 80,
                         HttpsPort = 443,
                         OriginProtocolPolicy = "https-only",
                         OriginSslProtocols = { "TLSv1.2" },
+                    },
+                    CustomHeaders = new[]
+                    {
+                        new DistributionOriginCustomHeaderArgs
+                        {
+                            Name = "X-CloudFront-Secret",
+                            Value = originSecret,
+                        },
                     },
                 },
             },

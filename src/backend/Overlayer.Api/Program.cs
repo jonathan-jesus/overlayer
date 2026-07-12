@@ -38,6 +38,21 @@ builder.Services.AddAWSLambdaHosting(LambdaEventSource.HttpApi);
 
 var app = builder.Build();
 
+app.Use(async (context, next) =>
+{
+    var expected = context.RequestServices
+        .GetRequiredService<IConfiguration>()["CloudFront:OriginSecret"];
+
+    if (!context.Request.Headers.TryGetValue("X-CloudFront-Secret", out var actual)
+        || actual != expected)
+    {
+        context.Response.StatusCode = StatusCodes.Status403Forbidden;
+        return;
+    }
+
+    await next(context);
+});
+
 app.MapGet("/api/jobs/{jobId}/upload-urls", async (
     string jobId,
     [FromHeader(Name = "X-Session-ID")] Guid sessionId,

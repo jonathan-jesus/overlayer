@@ -17,24 +17,13 @@ public class S3UploadTests : IClassFixture<LocalStackFixture>
         _localStack = localStack;
     }
 
-    private WebApplicationFactory<Program> CreateFactory()
+    private class TestFactory : Infrastructure.BaseIntegrationApiFactory
     {
-        return new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
-        {
-            builder.ConfigureAppConfiguration((_, config) =>
-            {
-                config.AddInMemoryCollection(new Dictionary<string, string?>
-                {
-                    ["S3:ServiceUrl"] = _localStack.ConnectionString,
-                    ["S3:BucketName"] = BucketName,
-                    ["S3:Region"] = "us-east-2",
-                    ["S3:AccessKey"] = "test",
-                    ["S3:SecretKey"] = "test",
-                    ["S3:ForcePathStyle"] = "true"
-                });
-            });
-        });
+        public TestFactory(string connectionString, string bucketName)
+            : base(connectionString, bucketName) { }
     }
+
+    private WebApplicationFactory<Program> CreateFactory() => new TestFactory(_localStack.ConnectionString, BucketName);
 
     [Fact]
     public async Task Get_UploadUrls_PresignedPostUrl_AllowsSuccessfulUpload()

@@ -105,7 +105,9 @@ public class LockAcquisitionTests
         var validator = Substitute.For<IMediaValidator>();
         validator.ValidateAsync(Arg.Any<string>()).Returns(MediaValidationResult.Valid());
 
-        var processor = new Processing.JobProcessor(s3, s3Options, runner, builder, uploader, validator);
+        var overlayValidator = Substitute.For<IOverlayValidator>();
+        overlayValidator.ValidateAsync(Arg.Any<string>()).Returns(Task.FromResult(MediaValidationResult.Valid()));
+        var processor = new Processing.JobProcessor(s3, s3Options, runner, builder, uploader, validator, overlayValidator);
 
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(
             () => processor.HandleAsync(SessionId, JobId));
@@ -128,7 +130,9 @@ public class LockAcquisitionTests
         var uploader = Substitute.For<IOutputUploader>();
         var validator = Substitute.For<IMediaValidator>();
 
-        var processor = new Processing.JobProcessor(s3, s3Options, runner, builder, uploader, validator);
+        var overlayValidator = Substitute.For<IOverlayValidator>();
+        overlayValidator.ValidateAsync(Arg.Any<string>()).Returns(Task.FromResult(MediaValidationResult.Valid()));
+        var processor = new Processing.JobProcessor(s3, s3Options, runner, builder, uploader, validator, overlayValidator);
 
         var result = await processor.HandleAsync(SessionId, JobId);
 
@@ -142,3 +146,5 @@ public class LockAcquisitionTests
             Arg.Any<CancellationToken>());
     }
 }
+
+

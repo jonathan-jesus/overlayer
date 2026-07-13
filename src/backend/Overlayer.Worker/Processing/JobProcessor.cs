@@ -15,8 +15,10 @@ public class JobProcessor : IJobProcessor
     private readonly IFfmpegCommandBuilder _commandBuilder;
     private readonly IOutputUploader _uploader;
     private readonly IMediaValidator _validator;
+    private readonly IOverlayValidator _overlayValidator;
     public JobProcessor(IAmazonS3 s3, S3Options options, IProcessRunner processRunner, IFfmpegCommandBuilder commandBuilder, IOutputUploader uploader, IMediaValidator validator, IOverlayValidator overlayValidator)
     {
+        _overlayValidator = overlayValidator;
         _validator = validator;
         _uploader = uploader;
         _commandBuilder = commandBuilder;
@@ -63,6 +65,13 @@ public class JobProcessor : IJobProcessor
             if (!validationResult.IsValid)
             {
                 await WriteTombstoneAsync(errorKey, validationResult.FailureReason!, "validation");
+                return true;
+            }
+
+            var overlayValidationResult = await _overlayValidator.ValidateAsync(overlayPath);
+            if (!overlayValidationResult.IsValid)
+            {
+                await WriteTombstoneAsync(errorKey, overlayValidationResult.FailureReason!, "validation");
                 return true;
             }
 

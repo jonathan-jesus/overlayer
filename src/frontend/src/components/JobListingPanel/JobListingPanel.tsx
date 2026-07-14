@@ -41,6 +41,7 @@ interface JobListingPanelProps {
 export default function JobListingPanel({ onActionDesign }: JobListingPanelProps) {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [errorDetail, setErrorDetail] = useState<string | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const stopPolling = useCallback(() => {
@@ -137,13 +138,43 @@ export default function JobListingPanel({ onActionDesign }: JobListingPanelProps
                     Download
                   </a>
                 )}
-                {job.status === 'FAILED' && job.reason && (
-                  <span className="job-listing__reason">{job.reason}</span>
+                {job.status === 'FAILED' && (
+                  <button
+                    className="job-listing__details-btn"
+                    onClick={() => setErrorDetail(job.reason || 'Unknown error.')}
+                  >
+                    See details
+                  </button>
                 )}
               </div>
             </li>
           ))}
         </ul>
+      )}
+
+      {errorDetail && (
+        <dialog
+          className="job-listing__modal"
+          open
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setErrorDetail(null);
+            }
+          }}
+        >
+          <div className="job-listing__modal-content" onClick={(e) => e.stopPropagation()}>
+            <h3 className="job-listing__modal-title">Job failed</h3>
+            <p className="job-listing__modal-body">{errorDetail}</p>
+            <div className="job-listing__modal-actions">
+              <button
+                className="job-listing__modal-ok"
+                onClick={() => setErrorDetail(null)}
+              >
+                Ok
+              </button>
+            </div>
+          </div>
+        </dialog>
       )}
     </section>
   );

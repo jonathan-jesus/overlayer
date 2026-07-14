@@ -126,17 +126,63 @@ describe('JobListingPanel', () => {
     expect(onActionDesign).toHaveBeenCalledWith(jobId);
   });
 
-  it('shows the failure reason for FAILED jobs', async () => {
+  it('shows "See details" button for FAILED jobs and opens modal with reason', async () => {
     server.use(
       http.get('/api/jobs', () => HttpResponse.json({
         jobs: [makeJob({ status: 'FAILED', reason: 'Invalid video format' })]
       }))
     );
+    const user = userEvent.setup();
     render(<JobListingPanel />);
 
-    await waitFor(() => {
-      expect(screen.getByText('Invalid video format')).toBeInTheDocument();
-    });
+    const detailsButton = await screen.findByRole('button', { name: /see details/i });
+    expect(detailsButton).toBeInTheDocument();
+    
+    expect(screen.queryByText('Invalid video format')).not.toBeInTheDocument();
+
+    await user.click(detailsButton);
+
+    expect(screen.getByText('Invalid video format')).toBeInTheDocument();
+    
+    const okButton = screen.getByRole('button', { name: /ok/i });
+    await user.click(okButton);
+    
+    expect(screen.queryByText('Invalid video format')).not.toBeInTheDocument();
+  });
+
+  it('closes the modal when clicking outside of it (on the backdrop)', async () => {
+    server.use(
+      http.get('/api/jobs', () => HttpResponse.json({
+        jobs: [makeJob({ status: 'FAILED', reason: 'Some error' })]
+      }))
+    );
+    const user = userEvent.setup();
+    const { container } = render(<JobListingPanel />);
+
+    const detailsButton = await screen.findByRole('button', { name: /see details/i });
+    await user.click(detailsButton);
+
+    expect(screen.getByText('Some error')).toBeInTheDocument();
+
+    const dialog = container.querySelector('.job-listing__modal');
+    if (dialog) await user.click(dialog);
+
+    expect(screen.queryByText('Some error')).not.toBeInTheDocument();
+  });
+
+  it('shows fallback message when FAILED job has no reason', async () => {
+    server.use(
+      http.get('/api/jobs', () => HttpResponse.json({
+        jobs: [makeJob({ status: 'FAILED', reason: undefined })]
+      }))
+    );
+    const user = userEvent.setup();
+    render(<JobListingPanel />);
+
+    const detailsButton = await screen.findByRole('button', { name: /see details/i });
+    await user.click(detailsButton);
+
+    expect(screen.getByText('Unknown error.')).toBeInTheDocument();
   });
 
   it('non-terminal jobs have the processing row class and a spinner', async () => {

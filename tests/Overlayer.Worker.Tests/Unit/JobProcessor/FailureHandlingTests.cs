@@ -86,7 +86,9 @@ public class FailureHandlingTests
         var validator = Substitute.For<IMediaValidator>();
         validator.ValidateAsync(Arg.Any<string>()).Returns(MediaValidationResult.Valid());
 
-        var processor = new Processing.JobProcessor(s3, s3Options, runner, builder, Substitute.For<IOutputUploader>(), validator);
+        var overlayValidator = Substitute.For<IOverlayValidator>();
+        overlayValidator.ValidateAsync(Arg.Any<string>()).Returns(Task.FromResult(MediaValidationResult.Valid()));
+        var processor = new Processing.JobProcessor(s3, s3Options, runner, builder, Substitute.For<IOutputUploader>(), validator, overlayValidator);
 
         await processor.HandleAsync(SessionId, JobId);
 
@@ -146,7 +148,9 @@ public class FailureHandlingTests
         var validator = Substitute.For<IMediaValidator>();
         validator.ValidateAsync(Arg.Any<string>()).Returns(MediaValidationResult.Valid());
 
-        var processor = new Processing.JobProcessor(s3, s3Options, runner, builder, Substitute.For<IOutputUploader>(), validator);
+        var overlayValidator = Substitute.For<IOverlayValidator>();
+        overlayValidator.ValidateAsync(Arg.Any<string>()).Returns(Task.FromResult(MediaValidationResult.Valid()));
+        var processor = new Processing.JobProcessor(s3, s3Options, runner, builder, Substitute.For<IOutputUploader>(), validator, overlayValidator);
 
         await processor.HandleAsync(SessionId, JobId);
 
@@ -156,3 +160,5 @@ public class FailureHandlingTests
             Arg.Any<CancellationToken>());
     }
 }
+
+

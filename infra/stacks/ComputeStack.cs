@@ -12,6 +12,7 @@ using Pulumi.Aws.Ecs.Inputs;
 using Pulumi.Aws.Iam;
 using Pulumi.Aws.Lambda;
 using Pulumi.Aws.Lambda.Inputs;
+using Pulumi.Aws.ApiGatewayV2;
 
 namespace Overlayer.Infra.Stacks;
 
@@ -32,11 +33,12 @@ public sealed class ComputeStack : Stack
     [Output] public Output<string> FrontendBucketName { get; private set; }
     public ComputeStack()
     {
-        var stackName = Deployment.Instance.StackName;
+        var stackName = Pulumi.Deployment.Instance.StackName;
         var config = new Config("overlayer");
         var region = new Config("aws").Require("region");
 
         var acmCertificateArn = config.Get("acmCertificateArn");
+        var originSecret = config.RequireSecret("cloudfrontOriginSecret");
 
         var ffmpegMinBitrate = config.Get("ffmpegMinBitrate") ?? "3000";
         var ffmpegMaxBitrate = config.Get("ffmpegMaxBitrate") ?? "6500";
@@ -469,18 +471,52 @@ public sealed class ComputeStack : Stack
                 {
                     ["S3__BucketName"] = foundational.BucketName,
                     ["AWS__Region"] = region,
+                    ["CloudFront__OriginSecret"] = originSecret,
                 },
             },
             Tags = commonTags,
         });
 
-        var urlResource = new FunctionUrl($"overlayer-{stackName}-api-url", new FunctionUrlArgs
+        var httpApi = new Api($"overlayer-{stackName}-api-gateway", new ApiArgs
         {
-            FunctionName = lambda.Name,
-            AuthorizationType = "NONE",
+            Name = $"overlayer-{stackName}-api",
+            ProtocolType = "HTTP",
+            Tags = commonTags,
         });
 
-        FunctionUrl = urlResource.FunctionUrlResult;
+        var apiIntegration = new Integration($"overlayer-{stackName}-api-integration", new IntegrationArgs
+        {
+            ApiId = httpApi.Id,
+            IntegrationType = "AWS_PROXY",
+            IntegrationUri = lambda.Arn,
+            PayloadFormatVersion = "2.0",
+        });
+
+        _ = new Pulumi.Aws.ApiGatewayV2.Route($"overlayer-{stackName}-api-route", new Pulumi.Aws.ApiGatewayV2.RouteArgs
+        {
+            ApiId = httpApi.Id,
+            RouteKey = "$default",
+            Target = apiIntegration.Id.Apply(id => $"integrations/{id}"),
+        });
+
+        _ = new Stage($"overlayer-{stackName}-api-stage", new StageArgs
+        {
+            ApiId = httpApi.Id,
+            Name = "$default",
+            AutoDeploy = true,
+            Tags = commonTags,
+        });
+
+        _ = new Permission($"overlayer-{stackName}-api-gw-permission", new PermissionArgs
+        {
+            Action = "lambda:InvokeFunction",
+            Function = lambda.Name,
+            Principal = "apigateway.amazonaws.com",
+            SourceArn = httpApi.ExecutionArn.Apply(arn => $"{arn}/*/*"),
+            StatementId = $"AllowHttpApiInvoke-{stackName}",
+        });
+
+        FunctionUrl = httpApi.ApiEndpoint;
         #endregion
 
         #region ECS Unexpected Stop EventBridge Rule
@@ -509,7 +545,7 @@ public sealed class ComputeStack : Stack
         });
         #endregion
 
-        var frontend = new FrontendResources(stackName, commonTags, urlResource.FunctionUrlResult, acmCertificateArn);
+        var frontend = new FrontendResources(stackName, commonTags, httpApi.ApiEndpoint, originSecret, acmCertificateArn);
 
         _ = new ObservabilityResources(
             stackName, config, commonTags,

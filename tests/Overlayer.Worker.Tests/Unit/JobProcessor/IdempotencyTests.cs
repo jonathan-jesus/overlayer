@@ -58,7 +58,9 @@ public class IdempotencyTests
         var builder = Substitute.For<IFfmpegCommandBuilder>();
         var validator = Substitute.For<IMediaValidator>();
 
-        var processor = new Processing.JobProcessor(s3, s3Options, runner, builder, uploader, validator);
+        var overlayValidator = Substitute.For<IOverlayValidator>();
+        overlayValidator.ValidateAsync(Arg.Any<string>()).Returns(Task.FromResult(MediaValidationResult.Valid()));
+        var processor = new Processing.JobProcessor(s3, s3Options, runner, builder, uploader, validator, overlayValidator);
 
         var result = await processor.HandleAsync(SessionId, JobId);
 
@@ -76,3 +78,4 @@ public class IdempotencyTests
             Arg.Any<CancellationToken>());
     }
 }
+

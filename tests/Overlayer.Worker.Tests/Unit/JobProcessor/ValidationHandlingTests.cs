@@ -24,6 +24,7 @@ public class ValidationHandlingTests
     private readonly IFfmpegCommandBuilder _builder;
     private readonly IOutputUploader _uploader;
     private readonly IMediaValidator _validator;
+    private readonly IOverlayValidator _overlayValidator;
     private readonly Processing.JobProcessor _processor;
 
     public ValidationHandlingTests()
@@ -33,6 +34,8 @@ public class ValidationHandlingTests
         _builder = Substitute.For<IFfmpegCommandBuilder>();
         _uploader = Substitute.For<IOutputUploader>();
         _validator = Substitute.For<IMediaValidator>();
+        _overlayValidator = Substitute.For<IOverlayValidator>();
+        _overlayValidator.ValidateAsync(Arg.Any<string>()).Returns(Task.FromResult(MediaValidationResult.Valid()));
 
         _s3.GetObjectMetadataAsync(Arg.Is<GetObjectMetadataRequest>(r => r.Key == OutputKey), Arg.Any<CancellationToken>())
             .ThrowsAsync(new AmazonS3Exception("Not Found") { StatusCode = System.Net.HttpStatusCode.NotFound });
@@ -46,7 +49,9 @@ public class ValidationHandlingTests
         _s3.GetObjectAsync(Arg.Any<GetObjectRequest>(), Arg.Any<CancellationToken>())
             .Returns(Task.FromResult(new GetObjectResponse { ResponseStream = new MemoryStream() }));
 
-        _processor = new Processing.JobProcessor(_s3, s3Options, _runner, _builder, _uploader, _validator);
+        _overlayValidator = Substitute.For<IOverlayValidator>();
+        _overlayValidator.ValidateAsync(Arg.Any<string>()).Returns(Task.FromResult(MediaValidationResult.Valid()));
+        _processor = new Processing.JobProcessor(_s3, s3Options, _runner, _builder, _uploader, _validator, _overlayValidator);
     }
 
     [Fact]
@@ -103,3 +108,5 @@ public class ValidationHandlingTests
         await _uploader.DidNotReceiveWithAnyArgs().UploadAsync(default!, default!, default!);
     }
 }
+
+

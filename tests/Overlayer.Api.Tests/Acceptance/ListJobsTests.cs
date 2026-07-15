@@ -17,13 +17,13 @@ public class ListJobsTests : IClassFixture<LocalStackFixture>, IAsyncLifetime
 
     private class TestFactory : BaseIntegrationApiFactory
     {
-        public TestFactory(string connectionString, string bucketName)
-            : base(connectionString, bucketName) { }
+        public TestFactory(string connectionString, string bucketName, string dynamoDbConnectionString)
+            : base(connectionString, bucketName, dynamoDbConnectionString) { }
     }
     public ListJobsTests(LocalStackFixture localStack)
     {
         _localStack = localStack;
-        var factory = new TestFactory(_localStack.ConnectionString, BucketName);
+        var factory = new TestFactory(_localStack.ConnectionString, BucketName, _localStack.ConnectionString);
         _client = factory.CreateClient();
     }
 

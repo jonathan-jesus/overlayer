@@ -29,6 +29,7 @@ public class RequestUploadUrlsTests : IClassFixture<RequestUploadUrlsTests.NoSts
             {
                 services.AddSingleton<IAwsCredentialProvider>(
                     new StubAwsCredentialProvider("test-access-key", "test-secret-key", null));
+                services.AddSingleton<IRateLimitStore>(new StubRateLimitStore());
             });
         }
 

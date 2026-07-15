@@ -16,7 +16,7 @@ public abstract class BaseIntegrationApiFactory : WebApplicationFactory<Program>
     protected BaseIntegrationApiFactory(
         string connectionString,
         string bucketName,
-        string dynamoDbConnectionString = "",
+        string dynamoDbConnectionString,
         string rateLimitTableName = "overlayer-rate-limits-test",
         RateLimitOptions? rateLimitOptions = default)
     {

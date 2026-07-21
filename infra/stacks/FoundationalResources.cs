@@ -1,5 +1,7 @@
 using System.Text.Json;
 using Pulumi;
+using Pulumi.Aws.DynamoDB;
+using Pulumi.Aws.DynamoDB.Inputs;
 using Pulumi.Aws.S3;
 using Pulumi.Aws.S3.Inputs;
 using Pulumi.Aws.Sqs;
@@ -8,7 +10,7 @@ namespace Overlayer.Infra.Stacks;
 
 /// <summary>
 /// Creates the foundational data-plane infrastructure for Overlayer:
-/// S3 bucket, SQS with DLQ, S3-to-SQS notifications.
+/// S3 bucket, SQS with DLQ, S3-to-SQS notifications, and the DynamoDB rate-limit table.
 /// </summary>
 public sealed class FoundationalResources
 {
@@ -18,6 +20,8 @@ public sealed class FoundationalResources
     internal Output<string> QueueArn { get; }
     internal Output<string> QueueName { get; }
     internal Output<string> DlqName { get; }
+    internal Output<string> RateLimitTableName { get; }
+    internal Output<string> RateLimitTableArn { get; }
     public FoundationalResources(string stackName, Config config, InputMap<string> commonTags, string corsAllowedOrigin)
     {
         var visibilityTimeout = config.GetInt32("sqsVisibilityTimeoutSeconds") ?? 300;
@@ -160,11 +164,25 @@ public sealed class FoundationalResources
         }, new CustomResourceOptions { DependsOn = { queuePolicy } });
         #endregion
 
+        #region DynamoDB Rate-Limit Table
+        var rateLimitTable = new Table($"overlayer-rate-limits-{stackName}", new TableArgs
+        {
+            Name = $"overlayer-rate-limits-{stackName}",
+            BillingMode = "PAY_PER_REQUEST",
+            HashKey = "Id",
+            Attributes = [new TableAttributeArgs { Name = "Id", Type = "S" }],
+            Ttl = new TableTtlArgs { AttributeName = "ExpiresAt", Enabled = true },
+            Tags = commonTags,
+        });
+        #endregion
+
         BucketName = bucket.Id;
         QueueUrl = queue.Url;
         BucketArn = bucket.Arn;
         QueueArn = queue.Arn;
         QueueName = queue.Name;
         DlqName = dlq.Name;
+        RateLimitTableName = rateLimitTable.Name;
+        RateLimitTableArn = rateLimitTable.Arn;
     }
 }

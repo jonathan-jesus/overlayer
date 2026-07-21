@@ -400,9 +400,9 @@ public sealed class ComputeStack : Stack
         _ = new RolePolicy($"overlayer-{stackName}-lambda-policy", new RolePolicyArgs
         {
             Role = lambdaRole.Id,
-            Policy = Output.Tuple(foundational.BucketArn, lambdaLogGroup.Arn).Apply(t =>
+            Policy = Output.Tuple(foundational.BucketArn, lambdaLogGroup.Arn, foundational.RateLimitTableArn).Apply(t =>
             {
-                var (bucketArn, logGroupArn) = t;
+                var (bucketArn, logGroupArn, rateLimitTableArn) = t;
                 return JsonSerializer.Serialize(new
                 {
                     Version = "2012-10-17",
@@ -448,6 +448,17 @@ public sealed class ComputeStack : Stack
                             },
                             Resource = $"{logGroupArn}:*",
                         },
+                        new
+                        {
+                            Sid      = "DynamoDbRateLimit",
+                            Effect   = "Allow",
+                            Action   = new[]
+                            {
+                                "dynamodb:UpdateItem",
+                                "dynamodb:DescribeTable",
+                            },
+                            Resource = rateLimitTableArn,
+                        },
                     },
                 });
             }),
@@ -469,9 +480,10 @@ public sealed class ComputeStack : Stack
             {
                 Variables = new InputMap<string>
                 {
-                    ["S3__BucketName"] = foundational.BucketName,
-                    ["AWS__Region"] = region,
-                    ["CloudFront__OriginSecret"] = originSecret,
+                    ["S3__BucketName"]            = foundational.BucketName,
+                    ["AWS__Region"]               = region,
+                    ["CloudFront__OriginSecret"]  = originSecret,
+                    ["RateLimit__TableName"]      = foundational.RateLimitTableName,
                 },
             },
             Tags = commonTags,

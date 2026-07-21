@@ -43,6 +43,12 @@ public sealed class ComputeStack : Stack
         var ffmpegMinBitrate = config.Get("ffmpegMinBitrate") ?? "3000";
         var ffmpegMaxBitrate = config.Get("ffmpegMaxBitrate") ?? "6500";
 
+        var rateLimitWindowSeconds = config.Get("rateLimitWindowSeconds") ?? "60";
+        var rateLimitUploadUrlsSessionLimit = config.Get("rateLimitUploadUrlsSessionLimit") ?? "5";
+        var rateLimitUploadUrlsIpLimit = config.Get("rateLimitUploadUrlsIpLimit") ?? "20";
+        var rateLimitJobsSessionLimit = config.Get("rateLimitJobsSessionLimit") ?? "30";
+        var rateLimitJobsIpLimit = config.Get("rateLimitJobsIpLimit") ?? "100";
+
         var commonTags = new InputMap<string>
         {
             ["Project"] = "overlayer",
@@ -480,10 +486,15 @@ public sealed class ComputeStack : Stack
             {
                 Variables = new InputMap<string>
                 {
-                    ["S3__BucketName"]            = foundational.BucketName,
-                    ["AWS__Region"]               = region,
-                    ["CloudFront__OriginSecret"]  = originSecret,
-                    ["RateLimit__TableName"]      = foundational.RateLimitTableName,
+                    ["S3__BucketName"]                        = foundational.BucketName,
+                    ["AWS__Region"]                           = region,
+                    ["CloudFront__OriginSecret"]              = originSecret,
+                    ["RateLimit__TableName"]                  = foundational.RateLimitTableName,
+                    ["RateLimit__WindowSeconds"]              = rateLimitWindowSeconds,
+                    ["RateLimit__UploadUrls__SessionLimit"]   = rateLimitUploadUrlsSessionLimit,
+                    ["RateLimit__UploadUrls__IpLimit"]        = rateLimitUploadUrlsIpLimit,
+                    ["RateLimit__Jobs__SessionLimit"]         = rateLimitJobsSessionLimit,
+                    ["RateLimit__Jobs__IpLimit"]              = rateLimitJobsIpLimit,
                 },
             },
             Tags = commonTags,

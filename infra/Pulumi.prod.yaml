@@ -7,6 +7,11 @@ config:
   overlayer:alertEmail: sousjonathan@gmail.com
   overlayer:corsAllowedOrigin: "https://overlayer.jonsousa.dev"
   overlayer:acmCertificateArn: "arn:aws:acm:us-east-1:459632521199:certificate/d670b5d6-d8cb-4f49-9e53-3977b9889be3"
+  overlayer:rateLimitWindowSeconds: "60"
+  overlayer:rateLimitUploadUrlsSessionLimit: "5"
+  overlayer:rateLimitUploadUrlsIpLimit: "20"
+  overlayer:rateLimitJobsSessionLimit: "30"
+  overlayer:rateLimitJobsIpLimit: "100"
   overlayer:cloudfrontOriginSecret:
     secure: v1:EwewkxRjp3mpntFO:RrNDBy/Eie6ARKSRRS2gu8QiSmqKDzcl0AYK9KA7yuMaZ9OIrJNd+wmQMMKAL2J5kc1IBg==
 encryptionsalt: v1:qgORON0cGPQ=:v1:7eKWFYAs7k0m1cpL:phd7xEVdiDb+Qm6oM+B1XQ6kZ3cPYw==

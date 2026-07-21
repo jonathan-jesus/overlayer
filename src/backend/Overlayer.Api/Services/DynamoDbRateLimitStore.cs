@@ -40,6 +40,7 @@ public class DynamoDbRateLimitStore : IRateLimitStore
         var now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
         var windowStart = now - (now % windowSeconds);
         var itemKey = $"{key}#{windowStart}";
+        var expiresAt = windowStart + windowSeconds;
 
         return new UpdateItemRequest
         {
@@ -48,14 +49,15 @@ public class DynamoDbRateLimitStore : IRateLimitStore
             {
                 ["Id"] = new AttributeValue { S = itemKey }
             },
-            UpdateExpression = "ADD #count :incr",
+            UpdateExpression = "ADD #count :incr SET ExpiresAt = if_not_exists(ExpiresAt, :ttl)",
             ExpressionAttributeNames = new Dictionary<string, string>
             {
                 ["#count"] = "Count"
             },
             ExpressionAttributeValues = new Dictionary<string, AttributeValue>
             {
-                [":incr"] = new AttributeValue { N = "1" }
+                [":incr"] = new AttributeValue { N = "1" },
+                [":ttl"] = new AttributeValue { N = expiresAt.ToString() }
             },
             ReturnValues = ReturnValue.UPDATED_NEW
         };

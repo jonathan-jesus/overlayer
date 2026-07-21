@@ -25,6 +25,7 @@ builder.Services.AddSingleton<IAmazonS3>(sp =>
     if (!string.IsNullOrWhiteSpace(opts.ServiceUrl))
     {
         config.ServiceURL = opts.ServiceUrl;
+        config.AuthenticationRegion = opts.Region;
     }
     else
     {
@@ -43,6 +44,7 @@ builder.Services.AddSingleton<IAmazonDynamoDB>(sp =>
     if (!string.IsNullOrWhiteSpace(opts.ServiceUrl))
     {
         config.ServiceURL = opts.ServiceUrl;
+        config.AuthenticationRegion = opts.Region;
     }
     else
     {

@@ -229,6 +229,40 @@ public class RateLimitingTests : IClassFixture<LocalStackFixture>
         }
     }
 
+    [Fact]
+    public async Task IncrementAsync_WrittenItem_HasExpiresAtEqualToWindowEnd()
+    {
+        var sessionId = Guid.NewGuid().ToString();
+
+        using var factory = CreateShortWindowFactory();
+        using var client = factory.CreateClient();
+
+        var before = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        var apiResponse = await client.SendAsync(BuildUploadUrlsRequest(sessionId, ip: "10.8.0.1"));
+        Assert.Equal(HttpStatusCode.OK, apiResponse.StatusCode);
+
+        var windowStart = before - (before % ShortWindowSeconds);
+        var expectedExpiresAt = windowStart + ShortWindowSeconds;
+
+        using var dynamo = _localStack.GetDynamoDbClient();
+        var itemKey = $"session:{sessionId}:upload-urls#{windowStart}";
+
+        var response = await dynamo.GetItemAsync(new Amazon.DynamoDBv2.Model.GetItemRequest
+        {
+            TableName = RateLimitTableName,
+            Key = new Dictionary<string, Amazon.DynamoDBv2.Model.AttributeValue>
+            {
+                ["Id"] = new Amazon.DynamoDBv2.Model.AttributeValue { S = itemKey }
+            }
+        });
+
+        Assert.True(response.IsItemSet, $"Item with key {itemKey} was not found in DynamoDB");
+        Assert.True(response.Item.ContainsKey("ExpiresAt"), "ExpiresAt attribute is missing from the item");
+        var actualExpiresAt = long.Parse(response.Item["ExpiresAt"].N);
+        // Timing tolerance
+        Assert.InRange(actualExpiresAt, expectedExpiresAt, expectedExpiresAt + 1);
+    }
+
     private static HttpRequestMessage BuildUploadUrlsRequest(string sessionId, string ip)
     {
         var request = new HttpRequestMessage(

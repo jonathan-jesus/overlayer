@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Job } from '../../api/apiClient';
-import { listJobs } from '../../api/apiClient';
+import { listJobs, RateLimitError } from '../../api/apiClient';
 import './JobListingPanel.css';
 
 const TERMINAL_STATUSES = new Set(['COMPLETED', 'FAILED']);
@@ -42,25 +42,39 @@ export default function JobListingPanel({ onActionDesign }: JobListingPanelProps
   const [jobs, setJobs] = useState<Job[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [errorDetail, setErrorDetail] = useState<string | null>(null);
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const stopPolling = useCallback(() => {
-    if (intervalRef.current !== null) {
-      clearInterval(intervalRef.current);
-      intervalRef.current = null;
+    if (timeoutRef.current !== null) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
     }
   }, []);
 
   const startPolling = useCallback(() => {
-    if (intervalRef.current !== null) return;
+    if (timeoutRef.current !== null) return;
 
-    intervalRef.current = setInterval(async () => {
-      const { jobs: updated } = await listJobs();
-      setJobs(updated);
-      if (updated.every((j) => TERMINAL_STATUSES.has(j.status))) {
-        stopPolling();
+    const poll = async () => {
+      let delay = POLL_INTERVAL_MS;
+      try {
+        const { jobs: updated } = await listJobs();
+        setJobs(updated);
+        if (updated.every((j) => TERMINAL_STATUSES.has(j.status))) {
+          stopPolling();
+          return;
+        }
+      } catch (error) {
+        if (error instanceof RateLimitError) {
+          console.warn(`Rate limit hit, pausing polling for ${error.retryAfterMs}ms`);
+          delay = error.retryAfterMs;
+        } else {
+          console.error('Failed to list jobs during poll:', error);
+        }
       }
-    }, POLL_INTERVAL_MS);
+      timeoutRef.current = setTimeout(poll, delay);
+    };
+
+    timeoutRef.current = setTimeout(poll, POLL_INTERVAL_MS);
   }, [stopPolling]);
 
   useEffect(() => {

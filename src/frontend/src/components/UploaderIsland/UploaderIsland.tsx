@@ -148,6 +148,12 @@ export default function UploaderIsland({
           </p>
         )}
 
+        {retryCountdown !== null && (
+          <p role="alert" className="uploader__error">
+            Too many requests. Please wait before trying again.
+          </p>
+        )}
+
         {uiState === 'uploading' && (
           <div className="uploader__progress" aria-label="Uploading…">
             <div className="uploader__progress-bar" />
@@ -169,8 +175,8 @@ export default function UploaderIsland({
             {retryCountdown !== null
               ? `Retry in ${Math.floor(retryCountdown / 60)}:${(retryCountdown % 60).toString().padStart(2, '0')}`
               : mode === 'video'
-              ? (uiState === 'uploading' ? 'Creating Job…' : 'Create Job')
-              : (uiState === 'uploading' ? 'Uploading…' : 'Upload Image')}
+                ? (uiState === 'uploading' ? 'Creating Job…' : 'Create Job')
+                : (uiState === 'uploading' ? 'Uploading…' : 'Upload Image')}
           </button>
         </div>
       </form>

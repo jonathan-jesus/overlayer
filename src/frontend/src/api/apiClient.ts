@@ -107,7 +107,7 @@ async function fetchWithRetry(url: string, options?: RequestInit, retries = 3): 
 export async function requestUploadUrls(jobId: string): Promise<RequestUploadUrlsResponse> {
   const response = await fetchWithRetry(`${API_BASE}/jobs/${jobId}/upload-urls`, {
     headers: sessionHeaders(),
-  });
+  }, 0);
   return response.json();
 }
 

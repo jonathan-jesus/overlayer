@@ -3,11 +3,10 @@ import type { Job } from '../../api/apiClient';
 import { listJobs, RateLimitError } from '../../api/apiClient';
 import './JobListingPanel.css';
 
-const TERMINAL_STATUSES = new Set(['COMPLETED', 'FAILED']);
 const POLL_INTERVAL_MS = 10_000;
 
-function isNonTerminal(job: Job): boolean {
-  return !TERMINAL_STATUSES.has(job.status);
+function isProcessing(job: Job): boolean {
+  return job.status === 'PROCESSING';
 }
 
 function formatDate(iso: string): string {
@@ -63,7 +62,7 @@ export default function JobListingPanel({ onActionDesign }: JobListingPanelProps
         });
         setIsRateLimited(false);
         setJobs(updated);
-        if (updated.every((j) => TERMINAL_STATUSES.has(j.status))) {
+        if (!updated.some(isProcessing)) {
           stopPolling();
           return;
         }
@@ -91,7 +90,7 @@ export default function JobListingPanel({ onActionDesign }: JobListingPanelProps
         setIsRateLimited(false);
         setJobs(fetched);
         setIsLoading(false);
-        if (fetched.some(isNonTerminal)) {
+        if (fetched.some(isProcessing)) {
           startPolling();
         }
       })
@@ -138,7 +137,7 @@ export default function JobListingPanel({ onActionDesign }: JobListingPanelProps
           {jobs.map((job) => (
             <li
               key={job.jobId}
-              className={`job-listing__row ${isNonTerminal(job) ? 'job-listing__row--processing' : ''}`}
+              className={`job-listing__row ${isProcessing(job) ? 'job-listing__row--processing' : ''}`}
             >
               <span className="job-listing__id" title={job.jobId}>
                 {job.jobId.slice(0, 8)}…
@@ -147,7 +146,7 @@ export default function JobListingPanel({ onActionDesign }: JobListingPanelProps
               <span className="job-listing__date">{formatDate(job.createdAt)}</span>
 
               <div className="job-listing__status">
-                {isNonTerminal(job) && job.status !== 'MISSING_ASSETS' && (
+                {isProcessing(job) && (
                   <span className="job-listing__spinner" aria-hidden="true" />
                 )}
                 <StatusBadge status={job.status} />

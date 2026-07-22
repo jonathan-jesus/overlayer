@@ -46,7 +46,7 @@ public sealed class FoundationalResources
             [
                 new BucketCorsConfigurationCorsRuleArgs
                 {
-                    AllowedOrigins = [corsAllowedOrigin],
+                    AllowedOrigins = [.. corsAllowedOrigin.Split([',', ';', ' '], StringSplitOptions.RemoveEmptyEntries)],
                     AllowedMethods = ["POST"],
                     AllowedHeaders = ["*"],
                     ExposeHeaders  = [],

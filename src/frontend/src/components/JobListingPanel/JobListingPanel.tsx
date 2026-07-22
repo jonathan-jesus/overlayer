@@ -42,6 +42,7 @@ export default function JobListingPanel({ onActionDesign }: JobListingPanelProps
   const [jobs, setJobs] = useState<Job[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [errorDetail, setErrorDetail] = useState<string | null>(null);
+  const [isRateLimited, setIsRateLimited] = useState(false);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const stopPolling = useCallback(() => {
@@ -57,7 +58,10 @@ export default function JobListingPanel({ onActionDesign }: JobListingPanelProps
     const poll = async () => {
       let delay = POLL_INTERVAL_MS;
       try {
-        const { jobs: updated } = await listJobs();
+        const { jobs: updated } = await listJobs({
+          onRateLimit: () => setIsRateLimited(true),
+        });
+        setIsRateLimited(false);
         setJobs(updated);
         if (updated.every((j) => TERMINAL_STATUSES.has(j.status))) {
           stopPolling();
@@ -67,8 +71,10 @@ export default function JobListingPanel({ onActionDesign }: JobListingPanelProps
         if (error instanceof RateLimitError) {
           console.warn(`Rate limit hit, pausing polling for ${error.retryAfterMs}ms`);
           delay = error.retryAfterMs;
+          setIsRateLimited(true);
         } else {
           console.error('Failed to list jobs during poll:', error);
+          setIsRateLimited(false);
         }
       }
       timeoutRef.current = setTimeout(poll, delay);
@@ -78,8 +84,11 @@ export default function JobListingPanel({ onActionDesign }: JobListingPanelProps
   }, [stopPolling]);
 
   useEffect(() => {
-    listJobs()
+    listJobs({
+      onRateLimit: () => setIsRateLimited(true),
+    })
       .then(({ jobs: fetched }) => {
+        setIsRateLimited(false);
         setJobs(fetched);
         setIsLoading(false);
         if (fetched.some(isNonTerminal)) {
@@ -88,6 +97,11 @@ export default function JobListingPanel({ onActionDesign }: JobListingPanelProps
       })
       .catch((error) => {
         console.error('Failed to list jobs:', error);
+        if (error instanceof RateLimitError) {
+          setIsRateLimited(true);
+        } else {
+          setIsRateLimited(false);
+        }
         setIsLoading(false);
       });
 
@@ -98,12 +112,18 @@ export default function JobListingPanel({ onActionDesign }: JobListingPanelProps
     <section className="job-listing app__section" aria-label="Job history">
       <h2 className="app__section-title">Your jobs</h2>
 
+      {!isLoading && isRateLimited && (
+        <p role="alert" className="job-listing__error">
+          Rate limit reached. Waiting for cooldown...
+        </p>
+      )}
+
       {isLoading ? (
         <ul className="job-listing__list" role="list">
           <li className="job-listing__row" style={{ display: 'flex', justifyContent: 'center' }}>
             <span className="job-listing__empty" style={{ padding: 0 }}>
               <span className="job-listing__spinner" aria-hidden="true" style={{ marginRight: '8px', display: 'inline-block' }} />
-              Loading jobs...
+              {isRateLimited ? 'Rate limit reached. Waiting for cooldown...' : 'Loading jobs...'}
             </span>
           </li>
         </ul>

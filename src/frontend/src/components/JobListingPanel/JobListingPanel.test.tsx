@@ -40,6 +40,19 @@ describe('JobListingPanel', () => {
     });
   });
 
+  it('shows rate limit message during initial load if 429 is encountered', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    server.use(
+      http.get('/api/jobs', () => new HttpResponse(null, { status: 429, headers: { 'Retry-After': '10' } }))
+    );
+    render(<JobListingPanel />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Rate limit reached. Waiting for cooldown...')).toBeInTheDocument();
+    });
+    vi.useRealTimers();
+  });
+
   it('renders a row for each job returned', async () => {
     server.use(
       http.get('/api/jobs', () => HttpResponse.json({ jobs: [makeJob(), makeJob()] }))
@@ -248,6 +261,33 @@ describe('JobListingPanel', () => {
       
       // Call count should still be 2
       expect(callCount).toBe(2);
+    });
+
+    it('shows rate limit banner during polling if 429 is encountered', async () => {
+      let callCount = 0;
+      server.use(
+        http.get('/api/jobs', () => {
+          callCount++;
+          if (callCount === 1) {
+            return HttpResponse.json({ jobs: [makeJob({ status: 'PROCESSING' })] });
+          } else {
+            return new HttpResponse(null, { status: 429, headers: { 'Retry-After': '10' } });
+          }
+        })
+      );
+      
+      render(<JobListingPanel />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Processing')).toBeInTheDocument();
+      });
+
+      // trigger next poll
+      await vi.advanceTimersByTimeAsync(10_000);
+
+      await waitFor(() => {
+        expect(screen.getByText('Rate limit reached. Waiting for cooldown...')).toBeInTheDocument();
+      });
     });
   });
 });

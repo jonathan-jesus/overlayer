@@ -62,7 +62,11 @@ export class RateLimitError extends Error {
   }
 }
 
-async function fetchWithRetry(url: string, options?: RequestInit, retries = 3): Promise<Response> {
+export interface FetchOptions extends RequestInit {
+  onRateLimit?: (delayMs: number) => void;
+}
+
+async function fetchWithRetry(url: string, options?: FetchOptions, retries = 3): Promise<Response> {
   let attempt = 0;
   while (attempt <= retries) {
     const response = await fetch(url, options);
@@ -93,6 +97,8 @@ async function fetchWithRetry(url: string, options?: RequestInit, retries = 3): 
         throw new RateLimitError(`API error: 429 Too Many Requests`, delayMs);
       }
 
+      options?.onRateLimit?.(delayMs);
+
       await new Promise(resolve => setTimeout(resolve, delayMs));
       attempt++;
       continue;
@@ -104,16 +110,18 @@ async function fetchWithRetry(url: string, options?: RequestInit, retries = 3): 
   throw new Error('Unreachable');
 }
 
-export async function requestUploadUrls(jobId: string): Promise<RequestUploadUrlsResponse> {
+export async function requestUploadUrls(jobId: string, options?: FetchOptions): Promise<RequestUploadUrlsResponse> {
   const response = await fetchWithRetry(`${API_BASE}/jobs/${jobId}/upload-urls`, {
-    headers: sessionHeaders(),
+    ...options,
+    headers: { ...sessionHeaders(), ...options?.headers },
   }, 0);
   return response.json();
 }
 
-export async function listJobs(): Promise<JobsResponse> {
+export async function listJobs(options?: FetchOptions): Promise<JobsResponse> {
   const response = await fetchWithRetry(`${API_BASE}/jobs`, {
-    headers: sessionHeaders(),
+    ...options,
+    headers: { ...sessionHeaders(), ...options?.headers },
   });
   return response.json();
 }

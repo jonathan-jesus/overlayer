@@ -26,11 +26,10 @@ export default function UploaderIsland({
 
   useEffect(() => {
     if (retryCountdown === null || retryCountdown <= 0) {
-      if (retryCountdown === 0) setRetryCountdown(null);
       return;
     }
     const timer = setTimeout(() => {
-      setRetryCountdown(retryCountdown - 1);
+      setRetryCountdown((prev) => (prev !== null && prev <= 1 ? null : (prev as number) - 1));
     }, 1000);
     return () => clearTimeout(timer);
   }, [retryCountdown]);

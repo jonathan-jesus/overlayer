@@ -5,7 +5,7 @@ config:
   overlayer:ffmpegMinBitrate: "3000"
   overlayer:ffmpegMaxBitrate: "6500"
   overlayer:alertEmail: sousjonathan@gmail.com
-  overlayer:corsAllowedOrigin: "https://overlayer-dev.jonsousa.dev"
+  overlayer:corsAllowedOrigin: "https://overlayer-dev.jonsousa.dev;http://localhost:4321"
   overlayer:acmCertificateArn: "arn:aws:acm:us-east-1:459632521199:certificate/a0edcf30-651a-4784-8097-7e23ec720a56"
   overlayer:cloudfrontOriginSecret:
     secure: v1:QVtNOs9fworB53qV:uLtsBtjF11Hnck7acHKVKcVc97MUTyLofqYZwSGqiWNJcb5JintKbjyNRWdnVO2DwOiUwQ==

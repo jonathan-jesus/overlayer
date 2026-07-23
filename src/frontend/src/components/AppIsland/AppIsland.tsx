@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import type { PresignedUpload } from '../../api/apiClient';
-import { requestUploadUrls } from '../../api/apiClient';
+import { requestUploadUrls, RateLimitError } from '../../api/apiClient';
 import UploaderIsland from '../UploaderIsland/UploaderIsland';
 import CanvasDesignerIsland from '../CanvasDesignerIsland/CanvasDesignerIsland';
 import JobListingPanel from '../JobListingPanel/JobListingPanel';
@@ -12,7 +12,13 @@ type AppState =
 
 export default function AppIsland() {
   const [appState, setAppState] = useState<AppState>({ stage: 'upload' });
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
   const appRef = useRef<HTMLDivElement>(null);
+
+  function showToast(message: string) {
+    setToastMessage(message);
+    setTimeout(() => setToastMessage(null), 3500);
+  }
 
   useEffect(() => {
     if (appRef.current) appRef.current.dataset.hydrated = 'true';
@@ -31,6 +37,11 @@ export default function AppIsland() {
       const response = await requestUploadUrls(jobId);
       setAppState({ stage: 'design', jobId, overlayPresignedUpload: response.overlayUpload });
     } catch (e) {
+      if (e instanceof RateLimitError) {
+        showToast(`Too many requests. Please try again after ${Math.ceil(e.retryAfterMs / 1000)} seconds.`);
+      } else {
+        showToast('Failed to resume design. Please try again.');
+      }
       console.error('Failed to resume design:', e);
     }
   }
@@ -96,6 +107,12 @@ export default function AppIsland() {
           </section>
         )}
       </main>
+
+      {toastMessage && (
+        <div className="app__toast" role="alert">
+          {toastMessage}
+        </div>
+      )}
     </div>
   );
 }

@@ -1,3 +1,4 @@
+using Amazon.DynamoDBv2;
 using Amazon.S3;
 using Amazon.S3.Model;
 using Amazon.SQS;
@@ -21,6 +22,17 @@ public class LocalStackFixture : IAsyncLifetime
     public async Task DisposeAsync()
     {
         await _localStackContainer.DisposeAsync();
+    }
+
+    public IAmazonDynamoDB GetDynamoDbClient()
+    {
+        var config = new AmazonDynamoDBConfig
+        {
+            ServiceURL           = ConnectionString,
+            AuthenticationRegion = "us-east-2"
+        };
+
+        return new AmazonDynamoDBClient("test", "test", config);
     }
 
     public IAmazonS3 GetS3Client()

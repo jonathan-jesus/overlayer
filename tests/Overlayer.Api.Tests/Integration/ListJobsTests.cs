@@ -21,11 +21,12 @@ public class ListJobsTests : IClassFixture<LocalStackFixture>
 
     private class TestFactory : Infrastructure.BaseIntegrationApiFactory
     {
-        public TestFactory(string connectionString, string bucketName)
-            : base(connectionString, bucketName) { }
+        public TestFactory(string connectionString, string bucketName, string dynamoDbConnectionString)
+            : base(connectionString, bucketName, dynamoDbConnectionString) { }
     }
 
-    private WebApplicationFactory<Program> CreateFactory() => new TestFactory(_localStack.ConnectionString, BucketName);
+    private WebApplicationFactory<Program> CreateFactory() =>
+        new TestFactory(_localStack.ConnectionString, BucketName, _localStack.ConnectionString);
 
 
     [Fact]

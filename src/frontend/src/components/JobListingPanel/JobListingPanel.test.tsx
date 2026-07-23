@@ -40,6 +40,19 @@ describe('JobListingPanel', () => {
     });
   });
 
+  it('shows rate limit message during initial load if 429 is encountered', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    server.use(
+      http.get('/api/jobs', () => new HttpResponse(null, { status: 429, headers: { 'Retry-After': '10' } }))
+    );
+    render(<JobListingPanel />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Rate limit reached. Waiting for cooldown...')).toBeInTheDocument();
+    });
+    vi.useRealTimers();
+  });
+
   it('renders a row for each job returned', async () => {
     server.use(
       http.get('/api/jobs', () => HttpResponse.json({ jobs: [makeJob(), makeJob()] }))
@@ -185,7 +198,7 @@ describe('JobListingPanel', () => {
     expect(screen.getByText('Unknown error.')).toBeInTheDocument();
   });
 
-  it('non-terminal jobs have the processing row class and a spinner', async () => {
+  it('processing jobs have the processing row class and a spinner', async () => {
     server.use(
       http.get('/api/jobs', () => HttpResponse.json({
         jobs: [makeJob({ status: 'PROCESSING' })]
@@ -211,16 +224,16 @@ describe('JobListingPanel', () => {
       vi.useRealTimers();
     });
 
-    it('polling starts when there are non-terminal jobs and stops once all reach terminal status', async () => {
+    it('polling starts when there are processing jobs and stops once none are processing', async () => {
       let callCount = 0;
       server.use(
         http.get('/api/jobs', () => {
           callCount++;
           if (callCount === 1) {
-            // First fetch: one non-terminal job
+            // First fetch: one processing job
             return HttpResponse.json({ jobs: [makeJob({ status: 'PROCESSING' })] });
           } else {
-            // Second fetch: job is terminal
+            // Second fetch: job is no longer processing
             return HttpResponse.json({ jobs: [makeJob({ status: 'COMPLETED' })] });
           }
         })
@@ -243,11 +256,60 @@ describe('JobListingPanel', () => {
 
       expect(callCount).toBe(2);
 
-      // Advance time again. Since jobs are terminal, it shouldn't poll anymore
+      // Advance time again. Since no jobs are processing, it shouldn't poll anymore
       await vi.advanceTimersByTimeAsync(10_000);
       
       // Call count should still be 2
       expect(callCount).toBe(2);
+    });
+
+    it('polling does not start for jobs waiting for user action (MISSING_ASSETS)', async () => {
+      let callCount = 0;
+      server.use(
+        http.get('/api/jobs', () => {
+          callCount++;
+          return HttpResponse.json({ jobs: [makeJob({ status: 'MISSING_ASSETS' })] });
+        })
+      );
+      
+      render(<JobListingPanel />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Missing overlay')).toBeInTheDocument();
+      });
+
+      // Advance time by 10s (POLL_INTERVAL_MS)
+      await vi.advanceTimersByTimeAsync(10_000);
+
+      // Call count should still be 1 (only the initial fetch)
+      expect(callCount).toBe(1);
+    });
+
+    it('shows rate limit banner during polling if 429 is encountered', async () => {
+      let callCount = 0;
+      server.use(
+        http.get('/api/jobs', () => {
+          callCount++;
+          if (callCount === 1) {
+            return HttpResponse.json({ jobs: [makeJob({ status: 'PROCESSING' })] });
+          } else {
+            return new HttpResponse(null, { status: 429, headers: { 'Retry-After': '10' } });
+          }
+        })
+      );
+      
+      render(<JobListingPanel />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Processing')).toBeInTheDocument();
+      });
+
+      // trigger next poll
+      await vi.advanceTimersByTimeAsync(10_000);
+
+      await waitFor(() => {
+        expect(screen.getByText('Rate limit reached. Waiting for cooldown...')).toBeInTheDocument();
+      });
     });
   });
 });

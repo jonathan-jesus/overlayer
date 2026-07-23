@@ -1,6 +1,6 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import type { PresignedUpload } from '../../api/apiClient';
-import { requestUploadUrls } from '../../api/apiClient';
+import { requestUploadUrls, RateLimitError } from '../../api/apiClient';
 import { uploadFile, FileSizeExceededError } from '../../upload/s3UploadService';
 import type { UploadState } from '../../upload/uploadTypes';
 import './UploaderIsland.css';
@@ -22,6 +22,17 @@ export default function UploaderIsland({
 }: UploaderIslandProps) {
   const [uiState, setUiState] = useState<UploadState>('idle');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [retryCountdown, setRetryCountdown] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (retryCountdown === null || retryCountdown <= 0) {
+      return;
+    }
+    const timer = setTimeout(() => {
+      setRetryCountdown((prev) => (prev !== null && prev <= 1 ? null : (prev as number) - 1));
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [retryCountdown]);
 
   const videoInputRef = useRef<HTMLInputElement>(null);
   const overlayInputRef = useRef<HTMLInputElement>(null);
@@ -49,7 +60,10 @@ export default function UploaderIsland({
         setUiState('done');
         onVideoUploaded?.(newJobId, overlayUpload);
       } catch (err) {
-        if (err instanceof FileSizeExceededError) {
+        if (err instanceof RateLimitError) {
+          setRetryCountdown(Math.ceil(err.retryAfterMs / 1000));
+          setUiState('idle');
+        } else if (err instanceof FileSizeExceededError) {
           handleError('File is too large. Please choose a smaller file.');
         } else {
           handleError('Upload failed. Please try again.');
@@ -67,7 +81,10 @@ export default function UploaderIsland({
         setUiState('done');
         onComplete?.(jobId);
       } catch (err) {
-        if (err instanceof FileSizeExceededError) {
+        if (err instanceof RateLimitError) {
+          setRetryCountdown(Math.ceil(err.retryAfterMs / 1000));
+          setUiState('idle');
+        } else if (err instanceof FileSizeExceededError) {
           handleError('File is too large. Please choose a smaller file.');
         } else {
           handleError('Upload failed. Please try again.');
@@ -130,6 +147,12 @@ export default function UploaderIsland({
           </p>
         )}
 
+        {retryCountdown !== null && (
+          <p role="alert" className="uploader__error">
+            Too many requests. Please wait before trying again.
+          </p>
+        )}
+
         {uiState === 'uploading' && (
           <div className="uploader__progress" aria-label="Uploading…">
             <div className="uploader__progress-bar" />
@@ -146,11 +169,13 @@ export default function UploaderIsland({
           <button
             type="submit"
             className="uploader__submit"
-            disabled={!hasFile || uiState === 'uploading'}
+            disabled={!hasFile || uiState === 'uploading' || retryCountdown !== null}
           >
-            {mode === 'video'
-              ? (uiState === 'uploading' ? 'Creating Job…' : 'Create Job')
-              : (uiState === 'uploading' ? 'Uploading…' : 'Upload Image')}
+            {retryCountdown !== null
+              ? `Retry in ${Math.floor(retryCountdown / 60)}:${(retryCountdown % 60).toString().padStart(2, '0')}`
+              : mode === 'video'
+                ? (uiState === 'uploading' ? 'Creating Job…' : 'Create Job')
+                : (uiState === 'uploading' ? 'Uploading…' : 'Upload Image')}
           </button>
         </div>
       </form>

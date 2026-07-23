@@ -15,6 +15,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="AWSSDK.DynamoDBv2" Version="4.0.6.4" />
     <PackageReference Include="AWSSDK.S3" Version="4.0.21.2" />
     <PackageReference Include="AWSSDK.SQS" Version="4.0.2.26" />
     <PackageReference Include="JsonSchema.Net" Version="7.3.2" />

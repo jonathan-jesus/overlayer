@@ -1,7 +1,9 @@
+using Amazon.DynamoDBv2;
 using Amazon.S3;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Overlayer.Api.Configuration;
+using Overlayer.Api.Middleware;
 using Overlayer.Api.Services;
 using Overlayer.Shared.Contracts;
 
@@ -9,6 +11,8 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.Configure<S3Options>(builder.Configuration.GetSection(S3Options.SectionName));
 builder.Services.Configure<UploadOptions>(builder.Configuration.GetSection(UploadOptions.SectionName));
+builder.Services.Configure<DynamoDbOptions>(builder.Configuration.GetSection(DynamoDbOptions.SectionName));
+builder.Services.Configure<RateLimitOptions>(builder.Configuration.GetSection(RateLimitOptions.SectionName));
 builder.Services.AddSingleton<IAmazonS3>(sp =>
 {
     var opts = sp.GetRequiredService<IOptions<S3Options>>().Value;
@@ -21,6 +25,7 @@ builder.Services.AddSingleton<IAmazonS3>(sp =>
     if (!string.IsNullOrWhiteSpace(opts.ServiceUrl))
     {
         config.ServiceURL = opts.ServiceUrl;
+        config.AuthenticationRegion = opts.Region;
     }
     else
     {
@@ -31,8 +36,29 @@ builder.Services.AddSingleton<IAmazonS3>(sp =>
         ? new AmazonS3Client(config)
         : new AmazonS3Client(opts.AccessKey, opts.SecretKey, config);
 });
+builder.Services.AddSingleton<IAmazonDynamoDB>(sp =>
+{
+    var opts = sp.GetRequiredService<IOptions<DynamoDbOptions>>().Value;
+    var config = new AmazonDynamoDBConfig();
+
+    if (!string.IsNullOrWhiteSpace(opts.ServiceUrl))
+    {
+        config.ServiceURL = opts.ServiceUrl;
+        config.AuthenticationRegion = opts.Region;
+    }
+    else
+    {
+        config.RegionEndpoint = Amazon.RegionEndpoint.GetBySystemName(opts.Region);
+    }
+
+    return string.IsNullOrWhiteSpace(opts.AccessKey) || string.IsNullOrWhiteSpace(opts.SecretKey)
+        ? new AmazonDynamoDBClient(config)
+        : new AmazonDynamoDBClient(opts.AccessKey, opts.SecretKey, config);
+});
 builder.Services.AddSingleton<IAwsCredentialProvider, FallbackAwsCredentialProvider>();
 builder.Services.AddSingleton<IStorageService, S3StorageService>();
+builder.Services.AddSingleton<IRateLimitStore, DynamoDbRateLimitStore>();
+builder.Services.AddSingleton<IClientIpResolver, ForwardedIpResolver>();
 
 builder.Services.AddAWSLambdaHosting(LambdaEventSource.HttpApi);
 
@@ -53,7 +79,9 @@ app.Use(async (context, next) =>
     await next(context);
 });
 
-app.MapGet("/api/jobs/{jobId}/upload-urls", async (
+app.UseMiddleware<RateLimitingMiddleware>();
+
+app.MapGet("/api/jobs/{jobId}/upload-urls", [RequireRateLimit("upload-urls")] async (
     string jobId,
     [FromHeader(Name = "X-Session-ID")] Guid sessionId,
     [FromServices] IStorageService storageService,
@@ -83,7 +111,7 @@ app.MapGet("/api/jobs/{jobId}/upload-urls", async (
     });
 });
 
-app.MapGet("/api/jobs", async (
+app.MapGet("/api/jobs", [RequireRateLimit("jobs")] async (
     [FromHeader(Name = "X-Session-ID")] Guid sessionId,
     [FromServices] IStorageService storageService) =>
 {

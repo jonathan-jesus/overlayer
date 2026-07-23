@@ -1,13 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Job } from '../../api/apiClient';
-import { listJobs } from '../../api/apiClient';
+import { listJobs, RateLimitError } from '../../api/apiClient';
 import './JobListingPanel.css';
 
-const TERMINAL_STATUSES = new Set(['COMPLETED', 'FAILED']);
 const POLL_INTERVAL_MS = 10_000;
 
-function isNonTerminal(job: Job): boolean {
-  return !TERMINAL_STATUSES.has(job.status);
+function isProcessing(job: Job): boolean {
+  return job.status === 'PROCESSING';
 }
 
 function formatDate(iso: string): string {
@@ -42,38 +41,66 @@ export default function JobListingPanel({ onActionDesign }: JobListingPanelProps
   const [jobs, setJobs] = useState<Job[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [errorDetail, setErrorDetail] = useState<string | null>(null);
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [isRateLimited, setIsRateLimited] = useState(false);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const stopPolling = useCallback(() => {
-    if (intervalRef.current !== null) {
-      clearInterval(intervalRef.current);
-      intervalRef.current = null;
+    if (timeoutRef.current !== null) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
     }
   }, []);
 
   const startPolling = useCallback(() => {
-    if (intervalRef.current !== null) return;
+    if (timeoutRef.current !== null) return;
 
-    intervalRef.current = setInterval(async () => {
-      const { jobs: updated } = await listJobs();
-      setJobs(updated);
-      if (updated.every((j) => TERMINAL_STATUSES.has(j.status))) {
-        stopPolling();
+    const poll = async () => {
+      let delay = POLL_INTERVAL_MS;
+      try {
+        const { jobs: updated } = await listJobs({
+          onRateLimit: () => setIsRateLimited(true),
+        });
+        setIsRateLimited(false);
+        setJobs(updated);
+        if (!updated.some(isProcessing)) {
+          stopPolling();
+          return;
+        }
+      } catch (error) {
+        if (error instanceof RateLimitError) {
+          console.warn(`Rate limit hit, pausing polling for ${error.retryAfterMs}ms`);
+          delay = error.retryAfterMs;
+          setIsRateLimited(true);
+        } else {
+          console.error('Failed to list jobs during poll:', error);
+          setIsRateLimited(false);
+        }
       }
-    }, POLL_INTERVAL_MS);
+      timeoutRef.current = setTimeout(poll, delay);
+    };
+
+    timeoutRef.current = setTimeout(poll, POLL_INTERVAL_MS);
   }, [stopPolling]);
 
   useEffect(() => {
-    listJobs()
+    listJobs({
+      onRateLimit: () => setIsRateLimited(true),
+    })
       .then(({ jobs: fetched }) => {
+        setIsRateLimited(false);
         setJobs(fetched);
         setIsLoading(false);
-        if (fetched.some(isNonTerminal)) {
+        if (fetched.some(isProcessing)) {
           startPolling();
         }
       })
       .catch((error) => {
         console.error('Failed to list jobs:', error);
+        if (error instanceof RateLimitError) {
+          setIsRateLimited(true);
+        } else {
+          setIsRateLimited(false);
+        }
         setIsLoading(false);
       });
 
@@ -84,12 +111,18 @@ export default function JobListingPanel({ onActionDesign }: JobListingPanelProps
     <section className="job-listing app__section" aria-label="Job history">
       <h2 className="app__section-title">Your jobs</h2>
 
+      {!isLoading && isRateLimited && (
+        <p role="alert" className="job-listing__error">
+          Rate limit reached. Waiting for cooldown...
+        </p>
+      )}
+
       {isLoading ? (
         <ul className="job-listing__list" role="list">
           <li className="job-listing__row" style={{ display: 'flex', justifyContent: 'center' }}>
             <span className="job-listing__empty" style={{ padding: 0 }}>
               <span className="job-listing__spinner" aria-hidden="true" style={{ marginRight: '8px', display: 'inline-block' }} />
-              Loading jobs...
+              {isRateLimited ? 'Rate limit reached. Waiting for cooldown...' : 'Loading jobs...'}
             </span>
           </li>
         </ul>
@@ -104,7 +137,7 @@ export default function JobListingPanel({ onActionDesign }: JobListingPanelProps
           {jobs.map((job) => (
             <li
               key={job.jobId}
-              className={`job-listing__row ${isNonTerminal(job) ? 'job-listing__row--processing' : ''}`}
+              className={`job-listing__row ${isProcessing(job) ? 'job-listing__row--processing' : ''}`}
             >
               <span className="job-listing__id" title={job.jobId}>
                 {job.jobId.slice(0, 8)}…
@@ -113,7 +146,7 @@ export default function JobListingPanel({ onActionDesign }: JobListingPanelProps
               <span className="job-listing__date">{formatDate(job.createdAt)}</span>
 
               <div className="job-listing__status">
-                {isNonTerminal(job) && job.status !== 'MISSING_ASSETS' && (
+                {isProcessing(job) && (
                   <span className="job-listing__spinner" aria-hidden="true" />
                 )}
                 <StatusBadge status={job.status} />

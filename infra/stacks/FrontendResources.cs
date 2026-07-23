@@ -137,7 +137,7 @@ public sealed class FrontendResources
                     ForwardedValues = new DistributionOrderedCacheBehaviorForwardedValuesArgs
                     {
                         QueryString = true,
-                        Headers = { "Authorization", "Content-Type", "X-Session-ID" },
+                        Headers = { "Authorization", "Content-Type", "X-Session-ID", "Origin", "Access-Control-Request-Method", "Access-Control-Request-Headers" },
                         Cookies = new DistributionOrderedCacheBehaviorForwardedValuesCookiesArgs { Forward = "all" },
                     },
                     Compress = true,

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeAll, afterEach, afterAll } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { setupServer } from 'msw/node';
 import { http, HttpResponse } from 'msw';
@@ -75,14 +75,14 @@ describe('UploaderIsland', () => {
 
     await user.upload(screen.getByLabelText(/video/i), makeVideoFile());
     await user.click(screen.getByRole('button', { name: /create job/i }));
-    
+
     rerender(
-      <UploaderIsland 
-        mode="overlay" 
-        jobId="test-job" 
-        overlayPresignedUpload={mockUploadUrlsResponse.overlayUpload} 
-        onVideoUploaded={onVideoUploaded} 
-        onComplete={onComplete} 
+      <UploaderIsland
+        mode="overlay"
+        jobId="test-job"
+        overlayPresignedUpload={mockUploadUrlsResponse.overlayUpload}
+        onVideoUploaded={onVideoUploaded}
+        onComplete={onComplete}
       />
     );
 
@@ -115,14 +115,14 @@ describe('UploaderIsland', () => {
     const oversizedOverlay = makeOverlayFile(mockUploadUrlsResponse.overlayUpload.maxFileSize + 1);
     await user.upload(screen.getByLabelText(/video/i), makeVideoFile());
     await user.click(screen.getByRole('button', { name: /create job/i }));
-    
+
     rerender(
-      <UploaderIsland 
-        mode="overlay" 
-        jobId="test-job" 
-        overlayPresignedUpload={mockUploadUrlsResponse.overlayUpload} 
-        onVideoUploaded={onVideoUploaded} 
-        onComplete={onComplete} 
+      <UploaderIsland
+        mode="overlay"
+        jobId="test-job"
+        overlayPresignedUpload={mockUploadUrlsResponse.overlayUpload}
+        onVideoUploaded={onVideoUploaded}
+        onComplete={onComplete}
       />
     );
 
@@ -167,5 +167,64 @@ describe('UploaderIsland', () => {
     await waitFor(() =>
       expect(screen.getByRole('alert')).toHaveTextContent(/upload failed/i)
     );
+  });
+
+  it('updates progress bar width during upload', async () => {
+    const xhrMock = {
+      open: vi.fn(),
+      send: vi.fn(),
+      addEventListener: vi.fn(),
+      upload: { addEventListener: vi.fn() },
+      status: 204
+    };
+    class MockXHR {
+      open = xhrMock.open;
+      send = xhrMock.send;
+      addEventListener = xhrMock.addEventListener;
+      upload = xhrMock.upload;
+      get status() { return xhrMock.status; }
+    }
+    vi.stubGlobal('XMLHttpRequest', MockXHR);
+
+    const user = userEvent.setup();
+    renderUploader();
+
+    await user.upload(screen.getByLabelText(/video/i), makeVideoFile());
+    await user.click(screen.getByRole('button', { name: /create job/i }));
+
+    // Wait for the progress bar container to appear
+    const progressBarContainer = await screen.findByLabelText(/Uploading…/i);
+    const innerBar = progressBarContainer.querySelector('.uploader__progress-bar') as HTMLElement;
+
+    expect(innerBar.style.width).toBe('0%');
+
+    // Wait for XMLHttpRequest to be initialized by the upload function
+    await waitFor(() => {
+      expect(xhrMock.upload.addEventListener).toHaveBeenCalled();
+    });
+
+    // Simulate progress
+    const progressHandler = xhrMock.upload.addEventListener.mock.calls.find((call: unknown[]) => call[0] === 'progress')?.[1] as (event: unknown) => void;
+    if (progressHandler) {
+      act(() => {
+        progressHandler({ lengthComputable: true, loaded: 50, total: 100 });
+      });
+    }
+
+    await waitFor(() => {
+      expect(innerBar.style.width).toBe('50%');
+    });
+
+    // Simulate load
+    const loadHandler = xhrMock.addEventListener.mock.calls.find((call: unknown[]) => call[0] === 'load')?.[1] as () => void;
+    if (loadHandler) {
+      act(() => {
+        loadHandler();
+      });
+    }
+
+    await waitFor(() => expect(onVideoUploaded).toHaveBeenCalledOnce());
+
+    vi.unstubAllGlobals();
   });
 });

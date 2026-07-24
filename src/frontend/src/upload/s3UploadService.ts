@@ -27,31 +27,53 @@ export function buildS3Url(presignedUpload: PresignedUpload): string {
   return `https://${bucket}.s3.${region}.amazonaws.com`;
 }
 
-export async function uploadFile(presignedUpload: PresignedUpload, file: File): Promise<void> {
-  if (file.size > presignedUpload.maxFileSize) {
-    throw new FileSizeExceededError(file.size, presignedUpload.maxFileSize);
-  }
+export function uploadFile(
+  presignedUpload: PresignedUpload,
+  file: File,
+  onProgress?: (percent: number) => void
+): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (file.size > presignedUpload.maxFileSize) {
+      reject(new FileSizeExceededError(file.size, presignedUpload.maxFileSize));
+      return;
+    }
 
-  const { fields } = presignedUpload;
-  const formData = new FormData();
-  formData.append('key', fields.key);
-  formData.append('Content-Type', fields.contentType);
-  formData.append('policy', fields.policy);
-  formData.append('X-Amz-Algorithm', fields.xAmzAlgorithm);
-  formData.append('X-Amz-Credential', fields.xAmzCredential);
-  formData.append('X-Amz-Date', fields.xAmzDate);
-  formData.append('X-Amz-Signature', fields.xAmzSignature);
-  if (fields.xAmzSecurityToken) {
-    formData.append('X-Amz-Security-Token', fields.xAmzSecurityToken);
-  }
-  formData.append('file', file);
+    const { fields } = presignedUpload;
+    const formData = new FormData();
+    formData.append('key', fields.key);
+    formData.append('Content-Type', fields.contentType);
+    formData.append('policy', fields.policy);
+    formData.append('X-Amz-Algorithm', fields.xAmzAlgorithm);
+    formData.append('X-Amz-Credential', fields.xAmzCredential);
+    formData.append('X-Amz-Date', fields.xAmzDate);
+    formData.append('X-Amz-Signature', fields.xAmzSignature);
+    if (fields.xAmzSecurityToken) {
+      formData.append('X-Amz-Security-Token', fields.xAmzSecurityToken);
+    }
+    formData.append('file', file);
 
-  const response = await fetch(buildS3Url(presignedUpload), {
-    method: 'POST',
-    body: formData,
+    const xhr = new XMLHttpRequest();
+
+    xhr.upload.addEventListener('progress', (event) => {
+      if (event.lengthComputable && onProgress) {
+        const percentComplete = (event.loaded / event.total) * 100;
+        onProgress(Math.min(percentComplete, 100)); // Cap at 100%
+      }
+    });
+
+    xhr.addEventListener('load', () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        resolve();
+      } else {
+        reject(new S3UploadError(xhr.status, xhr.statusText));
+      }
+    });
+
+    xhr.addEventListener('error', () => {
+      reject(new S3UploadError(xhr.status, xhr.statusText || 'Network Error'));
+    });
+
+    xhr.open('POST', buildS3Url(presignedUpload), true);
+    xhr.send(formData);
   });
-
-  if (!response.ok) {
-    throw new S3UploadError(response.status, response.statusText);
-  }
 }

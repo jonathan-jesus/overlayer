@@ -56,30 +56,53 @@ describe('buildS3Url', () => {
 });
 
 describe('uploadFile', () => {
-  it('builds the correct FormData fields', async () => {
+  it('builds the correct FormData fields and tracks progress', async () => {
     // MSW's internal undici parser crashes on a jsdom File inside a FormData body
-    // so we spy on fetch directly instead of using server.use()
-    const fetchSpy = vi.spyOn(global, 'fetch').mockResolvedValueOnce(new Response(null, { status: 204 }));
+    // so we stub XMLHttpRequest directly instead of using server.use()
+    const xhrMock = {
+      open: vi.fn(),
+      send: vi.fn(),
+      addEventListener: vi.fn(),
+      upload: { addEventListener: vi.fn() },
+      status: 204
+    };
+    class MockXHR {
+      open = xhrMock.open;
+      send = xhrMock.send;
+      addEventListener = xhrMock.addEventListener;
+      upload = xhrMock.upload;
+      get status() { return xhrMock.status; }
+    }
+    vi.stubGlobal('XMLHttpRequest', MockXHR);
 
-    await uploadFile(presignedUpload, makeFile(50));
+    const onProgress = vi.fn();
+    const promise = uploadFile(presignedUpload, makeFile(50), onProgress);
 
-    expect(fetchSpy).toHaveBeenCalledTimes(1);
-    const [calledUrl, options] = fetchSpy.mock.calls[0];
-    const capturedFormData = options?.body as FormData;
+    expect(xhrMock.open).toHaveBeenCalledWith('POST', MOCK_S3_UPLOAD_URL, true);
 
-    expect(calledUrl).toBe(MOCK_S3_UPLOAD_URL);
-
+    const formData = xhrMock.send.mock.calls[0][0] as FormData;
     const { fields } = presignedUpload;
-    expect(capturedFormData?.get('key')).toBe(fields.key);
-    expect(capturedFormData?.get('Content-Type')).toBe(fields.contentType);
-    expect(capturedFormData?.get('policy')).toBe(fields.policy);
-    expect(capturedFormData?.get('X-Amz-Algorithm')).toBe(fields.xAmzAlgorithm);
-    expect(capturedFormData?.get('X-Amz-Credential')).toBe(fields.xAmzCredential);
-    expect(capturedFormData?.get('X-Amz-Date')).toBe(fields.xAmzDate);
-    expect(capturedFormData?.get('X-Amz-Signature')).toBe(fields.xAmzSignature);
-    expect(capturedFormData?.get('file')).toBeInstanceOf(File);
+    expect(formData.get('key')).toBe(fields.key);
+    expect(formData.get('Content-Type')).toBe(fields.contentType);
+    expect(formData.get('policy')).toBe(fields.policy);
+    expect(formData.get('X-Amz-Algorithm')).toBe(fields.xAmzAlgorithm);
+    expect(formData.get('X-Amz-Credential')).toBe(fields.xAmzCredential);
+    expect(formData.get('X-Amz-Date')).toBe(fields.xAmzDate);
+    expect(formData.get('X-Amz-Signature')).toBe(fields.xAmzSignature);
+    expect(formData.get('file')).toBeInstanceOf(File);
 
-    fetchSpy.mockRestore();
+    // Simulate progress event
+    const progressHandler = xhrMock.upload.addEventListener.mock.calls.find((call) => call[0] === 'progress')?.[1];
+    progressHandler({ lengthComputable: true, loaded: 25, total: 50 });
+    expect(onProgress).toHaveBeenCalledWith(50);
+
+    // Simulate load event
+    const loadHandler = xhrMock.addEventListener.mock.calls.find((call) => call[0] === 'load')?.[1];
+    loadHandler();
+
+    await expect(promise).resolves.toBeUndefined();
+
+    vi.unstubAllGlobals();
   });
 
   it('resolves on a 204 response from S3', async () => {

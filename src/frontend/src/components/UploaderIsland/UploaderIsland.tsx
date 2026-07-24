@@ -23,6 +23,7 @@ export default function UploaderIsland({
   const [uiState, setUiState] = useState<UploadState>('idle');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [retryCountdown, setRetryCountdown] = useState<number | null>(null);
+  const [uploadProgress, setUploadProgress] = useState<number>(0);
 
   useEffect(() => {
     if (retryCountdown === null || retryCountdown <= 0) {
@@ -53,10 +54,11 @@ export default function UploaderIsland({
 
       setUiState('uploading');
       setErrorMessage(null);
+      setUploadProgress(0);
 
       try {
         const { jobId: newJobId, videoUpload, overlayUpload } = await requestUploadUrls(crypto.randomUUID());
-        await uploadFile(videoUpload, video);
+        await uploadFile(videoUpload, video, setUploadProgress);
         setUiState('done');
         onVideoUploaded?.(newJobId, overlayUpload);
       } catch (err) {
@@ -75,9 +77,10 @@ export default function UploaderIsland({
 
       setUiState('uploading');
       setErrorMessage(null);
+      setUploadProgress(0);
 
       try {
-        await uploadFile(overlayPresignedUpload, overlay);
+        await uploadFile(overlayPresignedUpload, overlay, setUploadProgress);
         setUiState('done');
         onComplete?.(jobId);
       } catch (err) {
@@ -155,7 +158,10 @@ export default function UploaderIsland({
 
         {uiState === 'uploading' && (
           <div className="uploader__progress" aria-label="Uploading…">
-            <div className="uploader__progress-bar" />
+            <div
+              className="uploader__progress-bar"
+              style={{ width: `${uploadProgress}%` }}
+            />
           </div>
         )}
 

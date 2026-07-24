@@ -33,6 +33,22 @@ function StatusBadge({ status }: { status: Job['status'] }) {
   );
 }
 
+const STATUS_ORDER: Record<Job['status'], number> = {
+  MISSING_ASSETS: 1,
+  PROCESSING: 2,
+  FAILED: 3,
+  COMPLETED: 4,
+};
+
+function sortJobs(jobs: Job[]): Job[] {
+  return [...jobs].sort((a, b) => {
+    if (STATUS_ORDER[a.status] !== STATUS_ORDER[b.status]) {
+      return STATUS_ORDER[a.status] - STATUS_ORDER[b.status];
+    }
+    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+  });
+}
+
 interface JobListingPanelProps {
   onActionDesign?: (jobId: string) => void;
 }
@@ -61,7 +77,7 @@ export default function JobListingPanel({ onActionDesign }: JobListingPanelProps
           onRateLimit: () => setIsRateLimited(true),
         });
         setIsRateLimited(false);
-        setJobs(updated);
+        setJobs(sortJobs(updated));
         if (!updated.some(isProcessing)) {
           stopPolling();
           return;
@@ -88,7 +104,7 @@ export default function JobListingPanel({ onActionDesign }: JobListingPanelProps
     })
       .then(({ jobs: fetched }) => {
         setIsRateLimited(false);
-        setJobs(fetched);
+        setJobs(sortJobs(fetched));
         setIsLoading(false);
         if (fetched.some(isProcessing)) {
           startPolling();

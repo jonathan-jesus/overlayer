@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeAll, afterEach, afterAll, beforeEach } from 'vitest';
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { render, screen, waitFor, within, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { setupServer } from 'msw/node';
 import { http, HttpResponse } from 'msw';
@@ -113,7 +113,7 @@ describe('JobListingPanel', () => {
     });
 
     const listItems = screen.getAllByRole('listitem');
-    
+
     // First job has download url
     const downloadLink = within(listItems[0]).getByRole('link', { name: /download/i });
     expect(downloadLink).toHaveAttribute('href', 'https://example.com/video.mp4');
@@ -150,16 +150,16 @@ describe('JobListingPanel', () => {
 
     const detailsButton = await screen.findByRole('button', { name: /see details/i });
     expect(detailsButton).toBeInTheDocument();
-    
+
     expect(screen.queryByText('Invalid video format')).not.toBeInTheDocument();
 
     await user.click(detailsButton);
 
     expect(screen.getByText('Invalid video format')).toBeInTheDocument();
-    
+
     const okButton = screen.getByRole('button', { name: /ok/i });
     await user.click(okButton);
-    
+
     expect(screen.queryByText('Invalid video format')).not.toBeInTheDocument();
   });
 
@@ -215,6 +215,38 @@ describe('JobListingPanel', () => {
     });
   });
 
+  it('sorts jobs by status (MISSING_ASSETS, PROCESSING, FAILED, COMPLETED) and then by createdAt desc', async () => {
+    server.use(
+      http.get('/api/jobs', () => HttpResponse.json({
+        jobs: [
+          makeJob({ jobId: 'j-comp-old', status: 'COMPLETED', createdAt: '2026-07-01T10:00:00Z' }),
+          makeJob({ jobId: 'j-fail', status: 'FAILED', createdAt: '2026-07-02T10:00:00Z' }),
+          makeJob({ jobId: 'j-proc', status: 'PROCESSING', createdAt: '2026-07-03T10:00:00Z' }),
+          makeJob({ jobId: 'j-missing-old', status: 'MISSING_ASSETS', createdAt: '2026-07-01T12:00:00Z' }),
+          makeJob({ jobId: 'j-comp-new', status: 'COMPLETED', createdAt: '2026-07-04T10:00:00Z' }),
+          makeJob({ jobId: 'j-missing-new', status: 'MISSING_ASSETS', createdAt: '2026-07-05T10:00:00Z' }),
+        ]
+      }))
+    );
+    render(<JobListingPanel />);
+
+    await waitFor(() => {
+      expect(screen.getAllByRole('listitem')).toHaveLength(6);
+    });
+
+    const items = screen.getAllByRole('listitem');
+    const ids = items.map(item => item.querySelector('.job-listing__id')?.getAttribute('title'));
+
+    expect(ids).toEqual([
+      'j-missing-new',
+      'j-missing-old',
+      'j-proc',
+      'j-fail',
+      'j-comp-new',
+      'j-comp-old',
+    ]);
+  });
+
   describe('polling', () => {
     beforeEach(() => {
       vi.useFakeTimers({ shouldAdvanceTime: true });
@@ -238,7 +270,7 @@ describe('JobListingPanel', () => {
           }
         })
       );
-      
+
       render(<JobListingPanel />);
 
       // Wait for initial fetch to resolve
@@ -247,7 +279,9 @@ describe('JobListingPanel', () => {
       });
 
       // Advance time by 10s (POLL_INTERVAL_MS)
-      await vi.advanceTimersByTimeAsync(10_000);
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(10_000);
+      });
 
       // Wait for second fetch to update UI
       await waitFor(() => {
@@ -257,8 +291,10 @@ describe('JobListingPanel', () => {
       expect(callCount).toBe(2);
 
       // Advance time again. Since no jobs are processing, it shouldn't poll anymore
-      await vi.advanceTimersByTimeAsync(10_000);
-      
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(10_000);
+      });
+
       // Call count should still be 2
       expect(callCount).toBe(2);
     });
@@ -271,7 +307,7 @@ describe('JobListingPanel', () => {
           return HttpResponse.json({ jobs: [makeJob({ status: 'MISSING_ASSETS' })] });
         })
       );
-      
+
       render(<JobListingPanel />);
 
       await waitFor(() => {
@@ -279,7 +315,9 @@ describe('JobListingPanel', () => {
       });
 
       // Advance time by 10s (POLL_INTERVAL_MS)
-      await vi.advanceTimersByTimeAsync(10_000);
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(10_000);
+      });
 
       // Call count should still be 1 (only the initial fetch)
       expect(callCount).toBe(1);
@@ -297,7 +335,7 @@ describe('JobListingPanel', () => {
           }
         })
       );
-      
+
       render(<JobListingPanel />);
 
       await waitFor(() => {
@@ -305,7 +343,9 @@ describe('JobListingPanel', () => {
       });
 
       // trigger next poll
-      await vi.advanceTimersByTimeAsync(10_000);
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(10_000);
+      });
 
       await waitFor(() => {
         expect(screen.getByText('Rate limit reached. Waiting for cooldown...')).toBeInTheDocument();

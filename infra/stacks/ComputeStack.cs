@@ -504,6 +504,13 @@ public sealed class ComputeStack : Stack
         {
             Name = $"overlayer-{stackName}-api",
             ProtocolType = "HTTP",
+            CorsConfiguration = new Pulumi.Aws.ApiGatewayV2.Inputs.ApiCorsConfigurationArgs
+            {
+                AllowOrigins = [.. corsAllowedOrigin.Split([',', ';', ' '], StringSplitOptions.RemoveEmptyEntries)],
+                AllowMethods = ["GET", "OPTIONS"],
+                AllowHeaders = ["Content-Type", "X-Session-ID"],
+                MaxAge = 86400,
+            },
             Tags = commonTags,
         });
 

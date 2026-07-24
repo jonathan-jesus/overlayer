@@ -66,6 +66,16 @@ var app = builder.Build();
 
 app.Use(async (context, next) =>
 {
+    if (HttpMethods.IsOptions(context.Request.Method))
+    {
+        context.Response.StatusCode = StatusCodes.Status200OK;
+        return;
+    }
+    await next(context);
+});
+
+app.Use(async (context, next) =>
+{
     var expected = context.RequestServices
         .GetRequiredService<IConfiguration>()["CloudFront:OriginSecret"];
 
